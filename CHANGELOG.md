@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to **Deduplex** will be documented in this file.
 
@@ -16,6 +16,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 - Open-source readiness docs drafts: CONTRIBUTING, SECURITY, issue/PR templates (packaging for public `deduplex` repo).
 
 ### Changed
+
+- Document AuthTwin public repo link: https://github.com/Muhammad-Midhlaj/authtwin (ingest-only from Deduplex).
 
 - **Windows Nmap default profile** `st_sv_t4`: `-sT -sV -T4` (no admin). Optional `ss_sv_t4` SYN; legacy `sv_t4` aliases to connect; one auto-fallback if SYN yields only unknown ports.
 
