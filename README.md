@@ -2,9 +2,11 @@
 
 Personal open-source VAPT effort-reduction assistant: consolidate Nmap/Nessus/Nuclei (and AuthTwin authorization findings), exact duplicate grouping, evidence retention, analyst queue & decisions, template exports, retest compare, and localhost Wave 1 scan jobs with a live terminal log.
 
-Laya triage is **feature-flagged** and defaults **off**. When enabled it uses the real `laya` SDK (`typed-decisions`) or an optional remote URL, with rules fallback. Analysts retain validation Ã¢â‚¬â€ nothing is auto-confirmed or auto-suppressed.
+Related: [AuthTwin](https://github.com/Muhammad-Midhlaj/authtwin) (separate BAC/IDOR/BOLA engine). Deduplex **imports** AuthTwin findings only; it never runs AuthTwin or replays requests.
 
-See `docs/SCANNER_EXECUTION.md` and `docs/AUTHTWIN_IMPORT.md` for scanner and AuthTwin import details.
+Laya triage is **feature-flagged** and defaults **off**. When enabled it uses the real `laya` SDK (`typed-decisions`) or an optional remote URL, with rules fallback. Analysts retain validation - nothing is auto-confirmed or auto-suppressed.
+
+See `docs/SCANNER_EXECUTION.md` and `docs/AUTHTWIN_IMPORT.md`. AuthTwin engine: https://github.com/Muhammad-Midhlaj/authtwin.
 
 ## Requirements
 
@@ -36,9 +38,9 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 SQLite DB is created at `data/vapt.db`. Raw uploads are stored under `data/evidence/<engagement_id>/`.
 
 
-## Desktop app (spike) Ã¢â‚¬â€ Deduplex
+## Desktop app (spike) - Deduplex
 
-Windows **one-folder** PyInstaller build Ã¢â‚¬â€ double-click `Deduplex.exe` for a native Deduplex window (pywebview), no manual venv.
+Windows **one-folder** PyInstaller build - double-click `Deduplex.exe` for a native Deduplex window (pywebview), no manual venv.
 Auth-off / localhost only; data under `%LOCALAPPDATA%\Deduplex\`. Laya/torch excluded.
 Legacy `%LOCALAPPDATA%\VAPTEffortReduction\` is one-time migrated on first frozen launch when Deduplex is empty (wipe never auto-deletes the legacy folder).
 
@@ -52,7 +54,7 @@ python scripts/desktop_app.py
 
 ## Lab UI (localhost)
 
-Local analyst UI (Jinja) Ã¢â‚¬â€ **AUTH off**, bind **127.0.0.1 only**:
+Local analyst UI (Jinja) - **AUTH off**, bind **127.0.0.1 only**:
 
 ```bash
 cd deduplex   # or your clone path
@@ -65,14 +67,14 @@ Open **http://127.0.0.1:8000/**
 
 Walkthrough:
 
-1. **Home** Ã¢â‚¬â€ create an engagement (name + optional client).
-2. **Hub** (`/ui/engagements/{id}`) Ã¢â‚¬â€ tabs for Queue | Import | Retest | exports.
-3. **Import** Ã¢â‚¬â€ upload `sample_data/sample_nmap.xml` (baseline). Optionally import Nessus. For a follow-up scan, check **Retest import = Yes** and upload `sample_data/sample_nmap_retest.xml`.
-4. **Queue** Ã¢â‚¬â€ filter by status; open a finding; use quick-action buttons (confirmed / false_positive / Ã¢â‚¬Â¦) with an optional reason.
-5. **Exports** Ã¢â‚¬â€ CSV / XLSX / DOCX from hub, queue, or home (confirmed findings only).
-6. **Retest** Ã¢â‚¬â€ pick baseline + retest batches, run compare; review fixed / still open / new.
+1. **Home** - create an engagement (name + optional client).
+2. **Hub** (`/ui/engagements/{id}`) - tabs for Queue | Import | Retest | exports.
+3. **Import** - upload `sample_data/sample_nmap.xml` (baseline). Optionally import Nessus. For a follow-up scan, check **Retest import = Yes** and upload `sample_data/sample_nmap_retest.xml`.
+4. **Queue** - filter by status; open a finding; use quick-action buttons (confirmed / false_positive / - ) with an optional reason.
+5. **Exports** - CSV / XLSX / DOCX from hub, queue, or home (confirmed findings only).
+6. **Retest** - pick baseline + retest batches, run compare; review fixed / still open / new.
 
-Flash messages use query params (`?msg=Ã¢â‚¬Â¦&msg_type=ok`). CSRF tokens are required on all UI POSTs. Do **not** bind `0.0.0.0` or set `ALLOW_INSECURE_OPEN_MODE=true` for this lab.
+Flash messages use query params (`?msg=...&msg_type=ok`). CSRF tokens are required on all UI POSTs. Do **not** bind `0.0.0.0` or set `ALLOW_INSECURE_OPEN_MODE=true` for this lab.
 
 ## Sample import flow
 
@@ -100,7 +102,7 @@ python scripts/import_cli.py --engagement-id 1 --tool authtwin sample_data/sampl
 
 ### Via UI
 
-See **Lab UI (localhost)** above for the full walkthrough (hub Ã¢â€ â€™ import Ã¢â€ â€™ decide Ã¢â€ â€™ export Ã¢â€ â€™ retest).
+See **Lab UI (localhost)** above for the full walkthrough (hub / import / decide / export / retest).
 
 ### Via API (curl)
 
@@ -143,7 +145,7 @@ Auth is **off by default** (`AUTH_ENABLED=false`) for local lab only. **Do not**
 When enabled:
 
 1. Set `AUTH_ENABLED=true`, `BOOTSTRAP_API_KEY=<long secret>`, and a strong `SESSION_SECRET`.
-2. Restart the app Ã¢â‚¬â€ bootstrap creates an **admin** principal with that key.
+2. Restart the app - bootstrap creates an **admin** principal with that key.
 3. Call APIs with header `X-API-Key: <key>` (or `Authorization: Bearer <key>`).
 4. Browser UI: `POST /api/auth/login` with `{"api_key":"..."}` sets an HttpOnly `vapt_session` cookie.
 5. Admin can `POST /api/auth/principals` and `POST /api/auth/acl` to grant engagement access.
@@ -166,7 +168,7 @@ SQLite remains the default database. Postgres is still deferred.
 
 ## Perf load fixtures (Core volume)
 
-Synthetic Nmap/Nessus XML for **Core** import, exact grouping, and analyst-queue load Ã¢â‚¬â€ **not** Laya labels or fine-tune data.
+Synthetic Nmap/Nessus XML for **Core** import, exact grouping, and analyst-queue load - **not** Laya labels or fine-tune data.
 
 ```bash
 source .venv/bin/activate
@@ -206,7 +208,7 @@ Re-importing the same scanner findings attaches new observations to the existing
 
 ### Reimport hash (DefectDojo-inspired pattern)
 
-Stable identities for reimport / retest (reimplemented locally Ã¢â‚¬â€ we did **not** vendor DefectDojo):
+Stable identities for reimport / retest (reimplemented locally - we did **not** vendor DefectDojo):
 
 | Identity | Formula |
 |----------|---------|
@@ -216,7 +218,7 @@ Stable identities for reimport / retest (reimplemented locally Ã¢â‚¬â€�
 
 ### Nessus streaming parse
 
-Large `.nessus` files are parsed with **defusedxml** `iterparse` (ReportHost cleared after each host Ã¢â‚¬â€ NessusReportv2-style walk). We did **not** add `pytenable` (MIT; heavy SDK) Ã¢â‚¬â€ only ReportItem iteration was needed. XXE defenses stay on (`forbid_entities=True`).
+Large `.nessus` files are parsed with **defusedxml** `iterparse` (ReportHost cleared after each host - NessusReportv2-style walk). We did **not** add `pytenable` (MIT; heavy SDK) - only ReportItem iteration was needed. XXE defenses stay on (`forbid_entities=True`).
 
 ## Environment variables
 
@@ -270,7 +272,7 @@ Default CI/local tests mock the SDK and do **not** download weights.
 
 ## Laya fine-tuning (bounded experiment)
 
-See [`finetune/README.md`](finetune/README.md) for export, synthetic smoke, GPU training (single GPU or Kaggle 2Ãƒ - T4 DDP), evaluation, and enabling a local checkpoint via `LAYA_LOCAL_CHECKPOINT`.
+See [`finetune/README.md`](finetune/README.md) for export, synthetic smoke, GPU training (single GPU or Kaggle 2 - - T4 DDP), evaluation, and enabling a local checkpoint via `LAYA_LOCAL_CHECKPOINT`.
 
 Quick smoke (synthetic data + rules eval + optional CPU dry-run):
 
@@ -279,7 +281,7 @@ source .venv/bin/activate
 python scripts/run_finetune_experiment.py --synthetic --device cpu
 ```
 
-Do **not** treat synthetic or dry-run results as pilot-ready accuracy. Metrics are only those computed by `finetune.evaluate`; insufficient labels Ã¢â€ â€™ keep Laya eval-only with rules fallback.
+Do **not** treat synthetic or dry-run results as pilot-ready accuracy. Metrics are only those computed by `finetune.evaluate`; insufficient labels - keep Laya eval-only with rules fallback.
 
 ## Tests
 
@@ -294,7 +296,7 @@ Smoke coverage: Nmap/Nessus parsers (streaming Nessus + XXE rejection), exact du
 
 ```text
 app/           FastAPI app, models, schemas, API, web UI routes
-importers/     Nmap XML + Nessus parsers (data only Ã¢â‚¬â€ no tool execution)
+importers/     Nmap XML + Nessus parsers (data only - no tool execution)
 services/      import orchestration, asset mapping, grouping, triage, export, retest
 templates/     Lightweight HTML analyst UI
 tests/         pytest suite
@@ -338,7 +340,7 @@ Deduplex stands on these open-source projects. Thank you to their maintainers an
 | [pytest](https://github.com/pytest-dev/pytest) / [pytest-asyncio](https://github.com/pytest-dev/pytest-asyncio) | Test suite |
 | [Laya](https://pypi.org/project/laya/) | Optional typed-decisions triage SDK (feature-flagged; pulls ML stack when enabled) |
 
-When `LAYA_ENABLED=true`, Laya may pull additional OSS such as [PyTorch](https://github.com/pytorch/pytorch), [ðŸ¤— Transformers](https://github.com/huggingface/transformers), and [huggingface_hub](https://github.com/huggingface/huggingface_hub).
+When `LAYA_ENABLED=true`, Laya may pull additional OSS such as [PyTorch](https://github.com/pytorch/pytorch), [ -  Transformers](https://github.com/huggingface/transformers), and [huggingface_hub](https://github.com/huggingface/huggingface_hub).
 
 ### Desktop packaging (Windows)
 
@@ -357,6 +359,7 @@ Deduplex **imports** results from these ecosystems (and can launch allowlisted C
 | [Nmap](https://nmap.org/) ([source](https://github.com/nmap/nmap)) | XML import + Wave 1 scan jobs |
 | [Nuclei](https://github.com/projectdiscovery/nuclei) | JSONL import + Wave 1b jobs |
 | [SQLite](https://www.sqlite.org/) | Default embedded database |
+| [AuthTwin](https://github.com/Muhammad-Midhlaj/authtwin) | BAC/IDOR/BOLA findings JSON import (ingest-only; engine is a separate repo) |
 
 Nessus `.nessus` files are supported as an **import format** only; Nessus itself is a commercial Tenable product, not open source.
 
