@@ -160,3 +160,30 @@ def test_migrate_skips_when_new_has_data(monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert result == new_dir.resolve()
     assert (new_dir / "vapt.db").read_text(encoding="utf-8") == "new"
     assert (legacy / "old.db").is_file()
+
+
+def test_frozen_app_data_falls_back_to_xdg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    xdg = tmp_path / "xdg-data"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("XDG_DATA_HOME", str(xdg))
+    assert paths.get_app_data_dir() == (xdg / "Deduplex").resolve()
+
+
+def test_frozen_app_data_prefers_localappdata_over_xdg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    local = tmp_path / "LocalAppData"
+    xdg = tmp_path / "xdg-data"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    monkeypatch.setenv("XDG_DATA_HOME", str(xdg))
+    assert paths.get_app_data_dir() == (local / "Deduplex").resolve()
+
+
+def test_migrate_skips_empty_legacy_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    local = tmp_path / "Local"
+    legacy = local / paths.LEGACY_APP_DATA_FOLDER_NAME
+    legacy.mkdir(parents=True)
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    new_dir = local / paths.APP_DATA_FOLDER_NAME
+    assert paths.maybe_migrate_legacy_app_data(new_dir) == new_dir.resolve()
+    assert legacy.is_dir()
+    assert not new_dir.exists()
