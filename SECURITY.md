@@ -15,7 +15,7 @@ There is no long-term support (LTS) channel yet.
 
 Please report privately:
 
-1. Email the maintainers (prefer a Muhammad Midhlaj / Midhlaj security contact once published on the repo), **or**
+1. Email the maintainers (prefer a security contact listed on the repo), **or**
 2. Use GitHub **Private vulnerability reporting** on the public `deduplex` repository if that feature is enabled.
 
 Include:
@@ -52,3 +52,4 @@ Deduplex is a **localhost-only desktop / lab** assistant for consolidating scann
 - Keep the desktop spike on **127.0.0.1**.
 - Do **not** expose the UI to a LAN or the internet without `AUTH_ENABLED=true`, a strong `SESSION_SECRET`, and a real `BOOTSTRAP_API_KEY`.
 - Never commit `.env`, API keys, or real customer scanner exports.
+

@@ -67,3 +67,4 @@ Product: **Deduplex** · Installer: **`Deduplex-Setup.exe`** · Exe: **`Deduplex
 - [ ] SECURITY.md contact path still valid.
 
 **Do not tag public Setup if any blocker above is open.**
+

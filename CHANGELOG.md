@@ -44,3 +44,4 @@ Desktop packaging spike for lab machines (Windows).
 
 [Unreleased]: https://github.com/Muhammad-Midhlaj/deduplex/compare/v0.1.0-spike...HEAD
 [0.1.0-spike]: https://github.com/Muhammad-Midhlaj/deduplex/releases/tag/v0.1.0-spike
+
