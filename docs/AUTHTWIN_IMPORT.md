@@ -2,7 +2,7 @@
 
 AuthTwin engine (separate repo): **https://github.com/Muhammad-Midhlaj/authtwin**. Deduplex only **imports** AuthTwin findings files; it never runs AuthTwin or replays requests.
 
-Deduplex treats AuthTwin as a **file-import source only** â€” same rails as
+Deduplex treats AuthTwin as a **file-import source only - same rails as
 nmap / nessus / nuclei. Deduplex never runs AuthTwin, never replays its
 requests, and sends no packets. AuthTwin's authorized-use safety gate stays
 entirely inside AuthTwin.
@@ -39,7 +39,7 @@ Try it with `sample_data/sample_authtwin_findings.json` (lab hosts, fake identit
 
 | AuthTwin | Observation / Asset |
 |----------|---------------------|
-| â€” | `tool = "authtwin"` |
+|  -  | `tool = "authtwin"` |
 | `res_type` | `rule_id = "BOLA/<res_type>"` (identical for JSON/report/CSV so re-imports group) |
 | `finding_id` | `original_finding_id` (deterministic across runs â†’ retest matching) |
 | `title` | `title` |

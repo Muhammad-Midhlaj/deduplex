@@ -94,7 +94,7 @@ python scripts/import_cli.py --engagement-id 1 --tool nessus sample_data/sample_
 # Retest import
 python scripts/import_cli.py --engagement-id 1 --tool nmap --retest sample_data/sample_nmap_retest.xml
 
-# AuthTwin findings (ingest only Ã¢â‚¬â€ see docs/AUTHTWIN_IMPORT.md)
+# AuthTwin findings (ingest only - see docs/AUTHTWIN_IMPORT.md)
 python scripts/import_cli.py --engagement-id 1 --tool authtwin sample_data/sample_authtwin_findings.json
 ```
 
@@ -270,7 +270,7 @@ Default CI/local tests mock the SDK and do **not** download weights.
 
 ## Laya fine-tuning (bounded experiment)
 
-See [`finetune/README.md`](finetune/README.md) for export, synthetic smoke, GPU training (single GPU or Kaggle 2Ãƒâ€”T4 DDP), evaluation, and enabling a local checkpoint via `LAYA_LOCAL_CHECKPOINT`.
+See [`finetune/README.md`](finetune/README.md) for export, synthetic smoke, GPU training (single GPU or Kaggle 2Ãƒ - T4 DDP), evaluation, and enabling a local checkpoint via `LAYA_LOCAL_CHECKPOINT`.
 
 Quick smoke (synthetic data + rules eval + optional CPU dry-run):
 
@@ -360,12 +360,10 @@ Deduplex **imports** results from these ecosystems (and can launch allowlisted C
 
 Nessus `.nessus` files are supported as an **import format** only; Nessus itself is a commercial Tenable product, not open source.
 
-AuthTwin findings import is ingest-only (	ool=authtwin). The AuthTwin engine lives in a separate repo: [Muhammad-Midhlaj/authtwin](https://github.com/Muhammad-Midhlaj/authtwin). Deduplex never runs AuthTwin or replays requests.
-
-AuthTwin findings import is ingest-only (`tool=authtwin`); AuthTwin remains a separate tool and is not shipped in this repository.
+AuthTwin findings import is ingest-only (`tool=authtwin`). The AuthTwin engine lives in a separate repo: [Muhammad-Midhlaj/authtwin](https://github.com/Muhammad-Midhlaj/authtwin). Deduplex never runs AuthTwin or replays requests.
 
 Exact versions live in [`requirements.txt`](requirements.txt), [`requirements-desktop.txt`](requirements-desktop.txt), and [`requirements-desktop-build.txt`](requirements-desktop-build.txt).
 
 ## License
 
-Copyright 2026 Muhammad Midhlaj. Licensed under the Apache License, Version 2.0 â€” see [LICENSE](LICENSE).
+Copyright 2026 Muhammad Midhlaj. Licensed under the Apache License, Version 2.0 - see [LICENSE](LICENSE).
