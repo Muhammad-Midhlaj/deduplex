@@ -2,7 +2,7 @@
 
 Gate this list **before** tagging a public Setup build (`0.1.0-spike` or later). All items are blockers unless marked optional.
 
-Product: **Deduplex** · Installer: **`Deduplex-Setup.exe`** · Exe: **`Deduplex.exe`** · Publisher: **Wattlecorp** · Version source: `packaging/inno/vapt.iss` (`MyAppVersion`).
+Product: **Deduplex** · Installer: **`Deduplex-Setup.exe`** · Exe: **`Deduplex.exe`** · Publisher: **Muhammad Midhlaj** · Version source: `packaging/inno/vapt.iss` (`MyAppVersion`).
 
 ## 1. Build smoke
 
@@ -67,3 +67,4 @@ Product: **Deduplex** · Installer: **`Deduplex-Setup.exe`** · Exe: **`Deduplex
 - [ ] SECURITY.md contact path still valid.
 
 **Do not tag public Setup if any blocker above is open.**
+

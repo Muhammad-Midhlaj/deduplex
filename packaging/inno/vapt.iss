@@ -18,7 +18,7 @@
 
 #define MyAppName "Deduplex"
 #define MyAppVersion "0.1.0-spike"
-#define MyAppPublisher "Wattlecorp"
+#define MyAppPublisher "Muhammad Midhlaj"
 #define MyAppExeName "Deduplex.exe"
 
 [Setup]
@@ -99,3 +99,4 @@ begin
     end;
   end;
 end;
+

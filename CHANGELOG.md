@@ -27,7 +27,7 @@ Desktop packaging spike for lab machines (Windows).
 ### Added
 
 - **Deduplex** product shell: one-folder PyInstaller build → `Deduplex.exe`.
-- Inno Setup installer → **`Deduplex-Setup.exe`** (`AppVersion` `0.1.0-spike`, publisher **Wattlecorp**).
+- Inno Setup installer → **`Deduplex-Setup.exe`** (`AppVersion` `0.1.0-spike`, publisher **Muhammad Midhlaj**).
 - Localhost-only desktop launcher profile: bind **127.0.0.1**, auth off, Laya off, no `.env` in bundle; writable data under `%LOCALAPPDATA%\Deduplex\`.
 - Optional one-time migration from legacy `%LOCALAPPDATA%\VAPTEffortReduction\` when Deduplex app data is empty.
 - Core lab flows already in tree: Nmap/Nessus import, exact duplicate grouping, analyst queue & decisions, confirmed-only exports, retest compare hooks, synthetic `sample_data/`.
@@ -44,3 +44,4 @@ Desktop packaging spike for lab machines (Windows).
 
 [Unreleased]: https://github.com/Muhammad-Midhlaj/deduplex/compare/v0.1.0-spike...HEAD
 [0.1.0-spike]: https://github.com/Muhammad-Midhlaj/deduplex/releases/tag/v0.1.0-spike
+

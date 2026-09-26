@@ -2,7 +2,7 @@
 
 **Deduplex** helps VAPT analysts cut repetitive work: consolidate **Nmap** and **Nessus** results, group **exact** duplicates, keep evidence links, run an analyst decision queue, export confirmed findings, and compare **retest** batches.
 
-Desktop product (Windows): **`Deduplex.exe`** / installer **`Deduplex-Setup.exe`** (Inno Setup). Publisher: **Wattlecorp**. Current packaging version: **`0.1.0-spike`**.
+Desktop product (Windows): **`Deduplex.exe`** / installer **`Deduplex-Setup.exe`** (Inno Setup). Publisher: **Muhammad Midhlaj**. Current packaging version: **`0.1.0-spike`**.
 
 Public repository: **https://github.com/Muhammad-Midhlaj/deduplex**. Internal folders may still be named `vapt-effort-reduction`.
 
@@ -134,4 +134,5 @@ Please skip `finetune/`, secrets, and real evidence dumps — see [CONTRIBUTING.
 
 ## License
 
-Copyright 2026 Wattlecorp. Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
+Copyright 2026 Muhammad Midhlaj. Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
+
