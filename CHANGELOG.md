@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to **Deduplex** will be documented in this file.
 
@@ -10,6 +10,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **Wave 1 ScanJobs**: draft → explicit Start → Nmap `-sV -T4 -oX` → auto-import; Nuclei JSONL (Wave 1b); UI **Scans** tab; API `/api/scan-jobs`; binary allowlist + one-at-a-time + timeout/cancel.
 - Open-source readiness docs drafts: CONTRIBUTING, SECURITY, issue/PR templates (packaging for public `deduplex` repo).
 
 ### Changed

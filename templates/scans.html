@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Scans — {{ engagement.name }}{% endblock %}
+{% block content %}
+<p><a href="/">← Home</a> · <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
+<h1>Scanner jobs — {{ engagement.name }}</h1>
+
+{% include "_eng_tabs.html" %}
+
+{% if flash_msg and flash_type == 'ok' %}
+<div class="card" style="border-color:var(--ok)">
+  <h2 style="color:var(--ok);margin-bottom:0.5rem">What next?</h2>
+  <div class="btn-row">
+    <a class="btn" href="/ui/engagements/{{ engagement.id }}/queue">Open queue</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}/import">File import</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}">Back to hub</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Run Nmap (Wave 1)</h2>
+  <p class="muted" style="margin-top:0">
+    Draft only — nothing runs until you click <strong>Start</strong>.
+    Default profile: <code>-sV -T4</code> with <code>-oX</code> into the job directory.
+    Binary resolved from PATH and allowlisted on first use.
+  </p>
+  {% if nmap_path %}
+  <p class="muted">nmap on PATH: <code class="mono" style="padding:0.2rem 0.4rem">{{ nmap_path }}</code></p>
+  {% else %}
+  <p class="muted" style="color:var(--warn)">nmap not found on PATH — create draft will fail until installed or path overridden.</p>
+  {% endif %}
+  <form method="post" action="/ui/engagements/{{ engagement.id }}/scans">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <input type="hidden" name="tool" value="nmap" />
+    <label>Targets (hosts / CIDRs, space or comma separated)
+      <textarea name="targets_text" rows="3" required placeholder="127.0.0.1&#10;192.168.1.0/24"></textarea>
+    </label>
+    <label style="margin-top:0.6rem">Profile
+      <select name="profile_name">
+        <option value="sv_t4" selected>sv_t4 (−sV −T4)</option>
+      </select>
+    </label>
+    <label style="margin-top:0.6rem">Binary override (optional)
+      <input type="text" name="binary_path" placeholder="leave blank to use PATH / allowlist" />
+    </label>
+    <p style="margin-top:0.8rem"><button type="submit">Create draft</button></p>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Run Nuclei (Wave 1b)</h2>
+  {% if nuclei_path %}
+  <p class="muted">nuclei on PATH: <code class="mono" style="padding:0.2rem 0.4rem">{{ nuclei_path }}</code></p>
+  <form method="post" action="/ui/engagements/{{ engagement.id }}/scans">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <input type="hidden" name="tool" value="nuclei" />
+    <label>Targets (hosts / URLs as hostnames or IPs)
+      <textarea name="targets_text" rows="2" required placeholder="example.com"></textarea>
+    </label>
+    <input type="hidden" name="profile_name" value="default" />
+    <label style="margin-top:0.6rem">Binary override (optional)
+      <input type="text" name="binary_path" placeholder="leave blank to use PATH / allowlist" />
+    </label>
+    <p style="margin-top:0.8rem"><button type="submit">Create draft</button></p>
+  </form>
+  {% else %}
+  <p class="muted">nuclei not found on PATH — install or set allowlisted path later. Coming online when binary is available.</p>
+  {% endif %}
+</div>
+
+<div class="row">
+  <div class="card" style="opacity:0.75">
+    <h2>Burp <span class="badge">Coming</span></h2>
+    <p class="muted">Live Burp API drive is parked. Use file import when exports are available.</p>
+    <button type="button" disabled class="secondary">Not available</button>
+  </div>
+  <div class="card" style="opacity:0.75">
+    <h2>ZAP <span class="badge">Coming</span></h2>
+    <p class="muted">Live ZAP API drive is parked for a later wave.</p>
+    <button type="button" disabled class="secondary">Not available</button>
+  </div>
+  <div class="card" style="opacity:0.75">
+    <h2>Cloud scanners <span class="badge">Coming</span></h2>
+    <p class="muted">Qualys / InsightVM / other cloud connectors — Coming cards only.</p>
+    <button type="button" disabled class="secondary">Not available</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Jobs</h2>
+  <p class="muted">Only one job may be queued/running globally. Cancel kills the process tree.</p>
+  {% if jobs %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Tool</th><th>Status</th><th>Targets</th><th>Profile</th>
+        <th>Import</th><th>Started</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for j in jobs %}
+      <tr>
+        <td>{{ j.id }}</td>
+        <td>{{ j.tool }}</td>
+        <td><span class="badge {{ j.status }}">{{ j.status }}</span></td>
+        <td class="mono" style="padding:0.4rem;border:none;background:transparent;max-width:14rem">{{ j.targets_text }}</td>
+        <td>{{ j.profile_name }} <span class="muted">{{ j.profile_flags }}</span></td>
+        <td>
+          {% if j.import_batch_id %}
+            <a href="/ui/engagements/{{ engagement.id }}/queue">batch #{{ j.import_batch_id }}</a>
+          {% else %}—{% endif %}
+        </td>
+        <td class="muted">{{ j.started_at or "—" }}</td>
+        <td>
+          <div class="btn-row">
+            {% if j.status == 'draft' or j.status == 'queued' %}
+            <form method="post" action="/ui/engagements/{{ engagement.id }}/scans/{{ j.id }}/start" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="ok">Start</button>
+            </form>
+            {% endif %}
+            {% if j.status in ('draft', 'queued', 'running') %}
+            <form method="post" action="/ui/engagements/{{ engagement.id }}/scans/{{ j.id }}/cancel" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="danger">Cancel</button>
+            </form>
+            {% endif %}
+          </div>
+          {% if j.error_message %}
+          <p class="muted" style="color:var(--danger);margin:0.35rem 0 0;font-size:0.8rem">{{ j.error_message }}</p>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No scan jobs yet. Create a draft above, then Start.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

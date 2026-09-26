@@ -8,6 +8,7 @@ Override with env:
   VAPT_PROJECT_ROOT   — root that contains ``templates/`` (and sample_data)
   VAPT_TEMPLATES_DIR  — explicit Jinja templates directory
   VAPT_APP_DATA_DIR   — writable data root (desktop default: LOCALAPPDATA/…)
+                        jobs live under <app_data>/jobs (same root as evidence)
 """
 
 from __future__ import annotations
@@ -209,3 +210,9 @@ def get_default_database_url() -> str:
 
 def get_default_evidence_dir() -> Path:
     return get_app_data_dir() / "evidence"
+
+
+def get_default_jobs_dir() -> Path:
+    """Writable job artifact root (mirrors evidence_dir under app data)."""
+    return get_app_data_dir() / "jobs"
+

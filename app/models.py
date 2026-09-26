@@ -57,6 +57,7 @@ class Engagement(Base):
     observations: Mapped[list[Observation]] = relationship(back_populates="engagement")
     imports: Mapped[list[ImportBatch]] = relationship(back_populates="engagement")
     finding_groups: Mapped[list[FindingGroup]] = relationship(back_populates="engagement")
+    scan_jobs: Mapped[list["ScanJob"]] = relationship(back_populates="engagement")
 
 
 class Asset(Base):
@@ -233,3 +234,42 @@ class EngagementAcl(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     principal: Mapped[ApiPrincipal] = relationship(back_populates="acls")
+
+
+class ScanJobStatus(str, enum.Enum):
+    DRAFT = "draft"
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ScanJob(Base):
+    """User-started local scanner run (Nmap Wave 1; Nuclei Wave 1b). Never auto-starts."""
+
+    __tablename__ = "scan_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    engagement_id: Mapped[int] = mapped_column(ForeignKey("engagements.id"), nullable=False)
+    tool: Mapped[str] = mapped_column(String(64), nullable=False)  # nmap | nuclei
+    status: Mapped[ScanJobStatus] = mapped_column(
+        Enum(ScanJobStatus), default=ScanJobStatus.DRAFT, nullable=False
+    )
+    targets_text: Mapped[str] = mapped_column(Text, nullable=False)
+    profile_name: Mapped[str] = mapped_column(String(64), default="sv_t4", nullable=False)
+    profile_flags: Mapped[str] = mapped_column(String(512), default="-sV -T4", nullable=False)
+    binary_path: Mapped[str | None] = mapped_column(String(1024))
+    job_dir: Mapped[str | None] = mapped_column(String(1024))
+    artifact_path: Mapped[str | None] = mapped_column(String(1024))
+    log_path: Mapped[str | None] = mapped_column(String(1024))
+    pid: Mapped[int | None] = mapped_column(Integer)
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=3600, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    import_batch_id: Mapped[int | None] = mapped_column(ForeignKey("import_batches.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    engagement: Mapped[Engagement] = relationship(back_populates="scan_jobs")
+    import_batch: Mapped[ImportBatch | None] = relationship()

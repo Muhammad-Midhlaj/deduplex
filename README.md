@@ -1,4 +1,4 @@
-# Deduplex
+﻿# Deduplex
 
 **Deduplex** helps VAPT analysts cut repetitive work: consolidate **Nmap** and **Nessus** results, group **exact** duplicates, keep evidence links, run an analyst decision queue, export confirmed findings, and compare **retest** batches.
 
@@ -23,13 +23,14 @@ See also: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [C
 
 | Capability | Notes |
 |------------|--------|
-| Import | Nmap XML and Nessus exports (data only — no scanner execution) |
+| Import | Nmap XML and Nessus exports |
+| Local scans (Wave 1) | **Explicit Start** only: Nmap -sV -T4 -oX (Nuclei Wave 1b). PATH/allowlist binary, one job at a time, timeout/cancel. Never auto-start. |
 | Exact dedupe | Groups on `tool\|rule_id\|asset.canonical_key` (no fuzzy merge in this release) |
 | Analyst queue | Decisions with reason/history; exports are **confirmed-only** |
 | Retest | Compare baseline vs retest import batches (fixed / still open / new) |
 | Desktop | One-folder PyInstaller + Inno `Deduplex-Setup.exe` |
 
-Deferred / not claimed here: fuzzy root-cause merging, autonomous scanning, generative report prose, full client portal, production Postgres + encryption at rest (see project plan in the source tree when publishing).
+Deferred / not claimed here: fuzzy root-cause merging, **autonomous/unattended** scanning, generative report prose, full client portal, production Postgres + encryption at rest. Wave 1 local scans require an analyst to click **Start** on allowlisted binaries.
 
 ## Requirements (source)
 
@@ -61,7 +62,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ### Quick lab walkthrough
 
 1. Create an engagement on Home.
-2. Import `sample_data/sample_nmap.xml` (optional Nessus; optional retest `sample_data/sample_nmap_retest.xml`).
+2. Import `sample_data/sample_nmap.xml` (optional Nessus; optional retest `sample_data/sample_nmap_retest.xml`), **or** open **Scans** and Start an Nmap job against a lab target you own (e.g. `127.0.0.1`).
 3. Work the Queue (confirm / false_positive / …).
 4. Export CSV / XLSX / DOCX (confirmed only).
 5. Retest compare on the hub.
@@ -103,7 +104,7 @@ pytest -q
 ```text
 app/           FastAPI app, models, schemas, API, web UI
 importers/     Nmap XML + Nessus parsers
-services/      import, grouping, triage (rules; Laya optional), export, retest
+services/      import, scan_jobs (Wave 1), grouping, triage (rules; Laya optional), export, retest
 templates/     Lightweight HTML analyst UI
 tests/         pytest suite
 sample_data/   Synthetic Nmap + Nessus samples
@@ -127,8 +128,8 @@ Please skip `finetune/`, secrets, and real evidence dumps — see [CONTRIBUTING.
 
 ## Safety
 
-- Imported scanner content is **data only**.
-- Deduplex does not execute scanners or auto-suppress findings from model output.
+- File imports treat scanner XML/exports as **data only** (parsers never execute payloads).
+- Wave 1 **ScanJobs** may run allowlisted local nmap/nuclei only after an analyst clicks **Start** (never auto-start). Deduplex does not auto-suppress findings from model output.
 - Exports include **confirmed** findings only after analyst decisions.
 - Never commit secrets, customer evidence, or real engagement dumps — see CONTRIBUTING and the publish scrub notes.
 

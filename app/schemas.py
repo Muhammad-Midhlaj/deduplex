@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import DecisionValue, ImportStatus
+from app.models import DecisionValue, ImportStatus, ScanJobStatus
 
 
 class EngagementCreate(BaseModel):
@@ -148,3 +148,35 @@ class RetestMatchOut(BaseModel):
 class RetestCompareResult(BaseModel):
     matches: list[RetestMatchOut]
     summary: dict[str, int]
+
+
+class ScanJobCreate(BaseModel):
+    engagement_id: int
+    tool: str = "nmap"
+    targets_text: str
+    profile_name: str | None = None
+    binary_path: str | None = None
+    timeout_seconds: int = 3600
+
+
+class ScanJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    engagement_id: int
+    tool: str
+    status: ScanJobStatus
+    targets_text: str
+    profile_name: str
+    profile_flags: str
+    binary_path: str | None
+    job_dir: str | None
+    artifact_path: str | None
+    log_path: str | None
+    pid: int | None
+    timeout_seconds: int
+    error_message: str | None
+    import_batch_id: int | None
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None

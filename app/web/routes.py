@@ -11,7 +11,7 @@ from app.auth import Principal, filter_engagement_ids, get_current_principal, re
 from app.config import get_settings
 from app.csrf import CSRF_COOKIE, csrf_token_for_request, require_csrf, set_csrf_cookie
 from app.database import get_db
-from app.models import AnalystDecision, DecisionValue, Engagement, FindingGroup, ImportBatch, Observation
+from app.models import AnalystDecision, DecisionValue, Engagement, FindingGroup, ImportBatch, Observation, ScanJob
 from app.paths import get_project_root, get_templates_dir
 from app.uploads import save_upload_capped
 
@@ -494,4 +494,146 @@ def ui_retest_compare(
             "selected_baseline": baseline_id,
             "active_tab": "retest",
         },
+    )
+
+
+@router.get("/ui/engagements/{engagement_id}/scans", response_class=HTMLResponse)
+def ui_scans(
+    request: Request,
+    engagement_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+):
+    from services.scan_jobs import binary_on_path, list_jobs_for_engagement
+
+    eng = db.get(Engagement, engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    require_engagement_access(engagement_id, principal)
+    jobs = list_jobs_for_engagement(db, engagement_id)
+    job_rows = [
+        {
+            "id": j.id,
+            "tool": j.tool,
+            "status": j.status.value if hasattr(j.status, "value") else str(j.status),
+            "targets_text": j.targets_text,
+            "profile_name": j.profile_name,
+            "profile_flags": j.profile_flags,
+            "import_batch_id": j.import_batch_id,
+            "started_at": j.started_at,
+            "error_message": j.error_message,
+        }
+        for j in jobs
+    ]
+    return _html(
+        request,
+        "scans.html",
+        {
+            "engagement": eng,
+            "jobs": job_rows,
+            "nmap_path": binary_on_path("nmap"),
+            "nuclei_path": binary_on_path("nuclei"),
+            "active_tab": "scans",
+        },
+    )
+
+
+@router.post("/ui/engagements/{engagement_id}/scans")
+def ui_create_scan_draft(
+    engagement_id: int,
+    tool: str = Form("nmap"),
+    targets_text: str = Form(...),
+    profile_name: str = Form(""),
+    binary_path: str = Form(""),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+    _csrf: None = Depends(require_csrf),
+):
+    from services.scan_jobs import ScanJobError, create_draft_job
+
+    eng = db.get(Engagement, engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    require_engagement_access(engagement_id, principal)
+    try:
+        job = create_draft_job(
+            db,
+            engagement_id=engagement_id,
+            tool=tool,
+            targets_text=targets_text,
+            profile_name=profile_name or None,
+            binary_override=binary_path.strip() or None,
+        )
+    except ScanJobError as exc:
+        return _redirect(
+            f"/ui/engagements/{engagement_id}/scans",
+            msg=str(exc),
+            msg_type="error",
+        )
+    return _redirect(
+        f"/ui/engagements/{engagement_id}/scans",
+        msg=f"Draft scan job #{job.id} created ({job.tool}). Click Start to run.",
+    )
+
+
+@router.post("/ui/engagements/{engagement_id}/scans/{job_id}/start")
+def ui_start_scan(
+    engagement_id: int,
+    job_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+    _csrf: None = Depends(require_csrf),
+):
+    from services.scan_jobs import ScanJobError, start_job
+
+    eng = db.get(Engagement, engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    require_engagement_access(engagement_id, principal)
+    job = db.get(ScanJob, job_id)
+    if not job or job.engagement_id != engagement_id:
+        raise HTTPException(404, "Scan job not found")
+    try:
+        start_job(db, job_id)
+    except ScanJobError as exc:
+        return _redirect(
+            f"/ui/engagements/{engagement_id}/scans",
+            msg=str(exc),
+            msg_type="error",
+        )
+    return _redirect(
+        f"/ui/engagements/{engagement_id}/scans",
+        msg=f"Started scan job #{job_id}",
+    )
+
+
+@router.post("/ui/engagements/{engagement_id}/scans/{job_id}/cancel")
+def ui_cancel_scan(
+    engagement_id: int,
+    job_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+    _csrf: None = Depends(require_csrf),
+):
+    from services.scan_jobs import ScanJobError, cancel_job
+
+    eng = db.get(Engagement, engagement_id)
+    if not eng:
+        raise HTTPException(404, "Engagement not found")
+    require_engagement_access(engagement_id, principal)
+    job = db.get(ScanJob, job_id)
+    if not job or job.engagement_id != engagement_id:
+        raise HTTPException(404, "Scan job not found")
+    try:
+        cancel_job(db, job_id)
+    except ScanJobError as exc:
+        return _redirect(
+            f"/ui/engagements/{engagement_id}/scans",
+            msg=str(exc),
+            msg_type="error",
+        )
+    return _redirect(
+        f"/ui/engagements/{engagement_id}/scans",
+        msg=f"Cancelled scan job #{job_id}",
+        msg_type="warn",
     )

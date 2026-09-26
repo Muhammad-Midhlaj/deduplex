@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import auth as auth_api
-from app.api import decisions, engagements, exports, imports, observations, retest
+from app.api import decisions, engagements, exports, imports, observations, retest, scan_jobs
 from app.auth import ensure_bootstrap_principal
 from app.config import get_settings, validate_security_settings
 from app.database import SessionLocal, init_db
@@ -66,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(decisions.router)
     app.include_router(exports.router)
     app.include_router(retest.router)
+    app.include_router(scan_jobs.router)
     app.include_router(web_routes.router)
 
     # Evidence StaticFiles only with explicit insecure open-mode (never the default).
