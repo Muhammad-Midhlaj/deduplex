@@ -136,3 +136,11 @@ Please skip `finetune/`, secrets, and real evidence dumps — see [CONTRIBUTING.
 
 Copyright 2026 Muhammad Midhlaj. Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
 
+
+### Export columns
+
+All analyst exports are **confirmed-only**: a finding is included only after its group has a confirmed queue status. Triage recommendations do not automatically add findings to exports.
+
+- **CSV tracker:** finding_group_id, title, severity, tool, rule_id, hostname, ip_address, port, protocol, decision, decision_reason, analyst, decided_at.
+- **XLSX tracker (Confirmed Findings sheet):** Finding Group ID, Title, Severity, Tool, Rule ID, Hostname, IP, Port, Protocol, Decision, Reason, Analyst, Decided At.
+- **DOCX report:** engagement name (and client when present), generation time, then for each confirmed finding: title/rule ID, severity, tool/rule, asset target, analyst decision, and optional decision reason and analyst name.
