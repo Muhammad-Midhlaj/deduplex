@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sV -sC -oX retest.xml 192.168.1.10" start="1790244000" startstr="Wed Sep 24 10:00:00 2026" version="7.94" xmloutputversion="1.05">
+  <host starttime="1790244000" endtime="1790244060">
+    <status state="up" reason="echo-reply"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="web.lab.local" type="PTR"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="OpenSSH" version="8.9p1" method="probed"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack"/>
+        <service name="http" product="nginx" version="1.24.0" method="probed"/>
+        <!-- slowloris fixed — script absent on retest -->
+        <script id="http-title" output="Welcome to lab"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack"/>
+        <service name="https" product="nginx" version="1.24.0" method="probed"/>
+        <!-- still vulnerable -->
+        <script id="ssl-ccs-injection" output="VULNERABLE: SSL/TLS CCS Injection (CVE-2014-0224)"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>

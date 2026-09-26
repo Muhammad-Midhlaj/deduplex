@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ engagement.name }} — Hub{% endblock %}
+{% block content %}
+<p><a href="/">← Home</a></p>
+<h1>{{ engagement.name }}</h1>
+<p class="muted">Client: {{ engagement.client or "—" }} · Engagement #{{ engagement.id }}</p>
+
+{% include "_eng_tabs.html" %}
+
+{% if last_import %}
+<div class="callout">
+  <h2>Last import</h2>
+  <div class="callout-body">{{ last_import.original_filename }}</div>
+  <div class="callout-meta">
+    batch #{{ last_import.id }} · {{ last_import.tool }} · {{ last_import.record_count }} obs
+    · {{ last_import.created_at }}
+    {% if last_import.is_retest %} · <span class="badge">retest</span>{% endif %}
+    · status <span class="badge {{ last_import.status }}">{{ last_import.status }}</span>
+  </div>
+</div>
+{% else %}
+<div class="callout">
+  <h2>Last import</h2>
+  <div class="callout-body">No imports yet</div>
+  <div class="callout-meta"><a href="/ui/engagements/{{ engagement.id }}/import">Upload a scan</a> to get started.</div>
+</div>
+{% endif %}
+
+<div class="stat-hero">
+  <div class="stat accent">
+    <span class="num">{{ status_counts.get('pending', 0) }}</span>
+    <span class="lbl">Pending</span>
+  </div>
+  <div class="stat ok">
+    <span class="num">{{ status_counts.get('confirmed', 0) }}</span>
+    <span class="lbl">Confirmed</span>
+  </div>
+  <div class="stat danger">
+    <span class="num">{{ status_counts.get('false_positive', 0) }}</span>
+    <span class="lbl">False positive</span>
+  </div>
+  <div class="stat warn">
+    <span class="num">{{ status_counts.get('accepted_risk', 0) + status_counts.get('defer', 0) }}</span>
+    <span class="lbl">Accepted / defer</span>
+  </div>
+  <div class="stat muted">
+    <span class="num">{{ status_counts.get('all', 0) }}</span>
+    <span class="lbl">Total groups</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Quick links</h2>
+  <div class="btn-row">
+    <a class="btn" href="/ui/engagements/{{ engagement.id }}/queue">Open queue</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}/import">Import scan</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}/retest">Retest compare</a>
+  </div>
+  <p class="muted" style="margin:1rem 0 0.5rem">Exports (confirmed findings only)</p>
+  <div class="btn-row">
+    <a class="btn ok" href="/api/exports/{{ engagement.id }}/tracker.csv">Export CSV</a>
+    <a class="btn ok" href="/api/exports/{{ engagement.id }}/tracker.xlsx">Export XLSX</a>
+    <a class="btn ok" href="/api/exports/{{ engagement.id }}/report.docx">Export DOCX</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Import batches</h2>
+  {% if batches %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Tool</th><th>Filename</th><th>Status</th>
+        <th>Obs</th><th>Retest?</th><th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for b in batches %}
+      <tr>
+        <td>{{ b.id }}</td>
+        <td>{{ b.tool }}</td>
+        <td class="mono" style="padding:0.4rem;border:none;background:transparent">{{ b.original_filename }}</td>
+        <td><span class="badge {{ b.status }}">{{ b.status }}</span></td>
+        <td>{{ b.record_count }}</td>
+        <td>{% if b.is_retest %}<span class="badge">retest</span>{% else %}—{% endif %}</td>
+        <td class="muted">{{ b.created_at }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No imports yet.</p>
+    <div class="btn-row">
+      <a class="btn" href="/ui/engagements/{{ engagement.id }}/import">Import a scan</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

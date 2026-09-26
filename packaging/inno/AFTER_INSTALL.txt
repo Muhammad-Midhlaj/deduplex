@@ -1,0 +1,23 @@
+Installation complete.
+
+IMPORTANT — data that may remain after uninstall
+------------------------------------------------
+This app stores its database and evidence under:
+
+  %LOCALAPPDATA%\Deduplex\
+
+Default uninstall does NOT remove that folder (DB + evidence stay).
+
+Optional full wipe (either path):
+  1. Start Menu → "Remove Deduplex app data (optional)"
+     (runs Wipe-DeduplexData.bat under the install folder — confirms Y/N,
+      then deletes only that LocalAppData\Deduplex folder)
+  2. During uninstall: a Yes/No prompt asks whether to also delete
+     LocalAppData\Deduplex. Default is No (data preserved).
+
+Silent uninstall (/SILENT /VERYSILENT) always keeps LocalAppData\Deduplex.
+
+Legacy note: if you previously used VAPT Effort Reduction, data may still
+exist under %LOCALAPPDATA%\VAPTEffortReduction\. On first launch Deduplex
+will copy/rename that folder into Deduplex when Deduplex is empty.
+Wipe tools never auto-delete the legacy folder.

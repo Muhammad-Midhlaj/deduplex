@@ -1,0 +1,1 @@
+"""Lightweight HTML analyst UI."""

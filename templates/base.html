@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}{{ app_name|default('Deduplex') }}{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #9aa8bc;
+      --accent: #3d9cf0;
+      --ok: #3ecf8e;
+      --warn: #f0b429;
+      --danger: #f07178;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.45;
+    }
+    header {
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.5rem; display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;
+    }
+    header a { color: var(--accent); text-decoration: none; }
+    header a.nav-muted { color: var(--muted); font-size: 0.85rem; }
+    header .brand { font-weight: 700; color: var(--text); }
+    header .spacer { flex: 1; }
+    .lab-banner {
+      background: #1e2a1a; border-bottom: 1px solid #2f4630;
+      color: #a8c9a0; font-size: 0.8rem; padding: 0.35rem 1.5rem;
+      letter-spacing: 0.02em;
+    }
+    .lab-banner strong { color: var(--ok); }
+    main { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    .badge {
+      display: inline-block; padding: 0.15rem 0.45rem; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+      background: #243044; color: var(--muted);
+    }
+    .badge.critical, .badge.high { background: #3a1f24; color: var(--danger); }
+    .badge.medium { background: #3a3218; color: var(--warn); }
+    .badge.confirmed { background: #163528; color: var(--ok); }
+    .badge.pending { background: #243044; color: var(--accent); }
+    .badge.false_positive { background: #3a1f24; color: var(--danger); }
+    .badge.accepted_risk, .badge.defer { background: #3a3218; color: var(--warn); }
+    .badge.informational { background: #243044; color: var(--muted); }
+    .badge.fixed { background: #163528; color: var(--ok); }
+    .badge.open { background: #3a3218; color: var(--warn); }
+    .badge.new { background: #243044; color: var(--accent); }
+    form.inline { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; }
+    label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
+    input, select, textarea {
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.45rem 0.6rem; font: inherit;
+    }
+    button, .btn {
+      background: var(--accent); color: #041018; border: none; border-radius: 6px;
+      padding: 0.5rem 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-block; font: inherit;
+    }
+    button.secondary, .btn.secondary { background: #2a384c; color: var(--text); }
+    button.ok, .btn.ok { background: var(--ok); color: #041018; }
+    button.warn, .btn.warn { background: var(--warn); color: #041018; }
+    button.danger, .btn.danger { background: var(--danger); color: #041018; }
+    button.ghost, .btn.ghost { background: #2a384c; color: var(--text); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .quick-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.75rem; }
+    pre, .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem; white-space: pre-wrap; word-break: break-word;
+      background: var(--bg); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+    }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 220px; }
+    nav.filters a { margin-right: 0.75rem; }
+    nav.eng-tabs {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.75rem 0 1rem;
+      padding: 0.35rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    }
+    nav.eng-tabs a {
+      padding: 0.4rem 0.85rem; border-radius: 6px; text-decoration: none;
+      color: var(--muted); font-weight: 600; font-size: 0.9rem;
+    }
+    nav.eng-tabs a.active, nav.eng-tabs a:hover {
+      background: #243044; color: var(--text);
+    }
+    .flash {
+      border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+      border: 2px solid var(--border); font-size: 1.05rem; font-weight: 600;
+    }
+    .flash.ok {
+      background: #0f2e22; border-color: var(--ok); color: var(--ok);
+      box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18);
+    }
+    .flash.warn { background: #3a3218; border-color: var(--warn); color: var(--warn); }
+    .flash.error { background: #3a1f24; border-color: var(--danger); color: var(--danger); }
+    .flash .flash-label {
+      display: block; font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.06em; opacity: 0.85; margin-bottom: 0.2rem; font-weight: 700;
+    }
+    .stat-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 1rem; }
+    .stat-pills span {
+      background: #243044; border-radius: 999px; padding: 0.25rem 0.7rem;
+      font-size: 0.8rem; color: var(--muted);
+    }
+    .stat-pills strong { color: var(--text); }
+    /* Large number cards */
+    .stat-hero {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.75rem 0 1.25rem;
+    }
+    .stat-hero .stat {
+      flex: 1; min-width: 120px; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 1rem 1.1rem; text-align: center;
+    }
+    .stat-hero .stat .num {
+      display: block; font-size: 2.1rem; font-weight: 800; line-height: 1.1;
+      color: var(--text); letter-spacing: -0.02em;
+    }
+    .stat-hero .stat .lbl {
+      display: block; margin-top: 0.35rem; font-size: 0.78rem;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600;
+    }
+    .stat-hero .stat.ok .num { color: var(--ok); }
+    .stat-hero .stat.warn .num { color: var(--warn); }
+    .stat-hero .stat.accent .num { color: var(--accent); }
+    .stat-hero .stat.danger .num { color: var(--danger); }
+    .stat-hero .stat.muted .num { color: var(--muted); }
+    /* Callout for last import / results */
+    .callout {
+      background: #13283a; border: 1px solid var(--accent);
+      border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    .callout h2 { margin: 0 0 0.35rem; font-size: 1rem; color: var(--accent); }
+    .callout .callout-body { font-size: 1.05rem; font-weight: 600; }
+    .callout .callout-meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+    /* Filter chips as buttons */
+    .filter-chips {
+      display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.75rem 0 1rem;
+    }
+    .filter-chips a {
+      display: inline-block; padding: 0.4rem 0.85rem; border-radius: 999px;
+      text-decoration: none; font-weight: 600; font-size: 0.85rem;
+      background: #2a384c; color: var(--muted); border: 1px solid var(--border);
+    }
+    .filter-chips a:hover { color: var(--text); border-color: var(--accent); }
+    .filter-chips a.active {
+      background: var(--accent); color: #041018; border-color: var(--accent);
+    }
+    .filter-chips a .count {
+      display: inline-block; margin-left: 0.25rem;
+      background: rgba(0,0,0,0.2); border-radius: 999px; padding: 0.05rem 0.4rem;
+      font-size: 0.78rem;
+    }
+    .filter-chips a.active .count { background: rgba(0,0,0,0.25); }
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 2rem 1.5rem;
+      background: var(--panel); border: 1px dashed var(--border);
+      border-radius: 10px; margin: 0.5rem 0 1rem;
+    }
+    .empty-state p { margin: 0 0 1rem; color: var(--muted); font-size: 1.05rem; }
+    .empty-state .btn-row { justify-content: center; }
+    /* Result banner on finding page */
+    .result-banner {
+      background: #0f2e22; border: 2px solid var(--ok); border-radius: 10px;
+      padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+      box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.15);
+    }
+    .result-banner .rb-msg { flex: 1; font-weight: 700; color: var(--ok); font-size: 1.05rem; }
+    .result-banner .rb-status { font-size: 0.95rem; }
+    .home-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .home-badges .badge { font-size: 0.72rem; }
+    .export-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+    .brand-wrap { display: flex; align-items: baseline; gap: 0.45rem; }
+    .brand-sub { color: var(--muted); font-size: 0.78rem; font-weight: 500; }
+    .top-nav a {
+      color: var(--muted); text-decoration: none; font-weight: 600; font-size: 0.9rem;
+      padding: 0.35rem 0.55rem; border-radius: 6px;
+    }
+    .top-nav a:hover, .top-nav a.active { color: var(--text); background: #243044; }
+    .localhost-note {
+      color: var(--muted); font-size: 0.72rem; opacity: 0.85;
+      padding: 0.2rem 0.55rem; border: 1px solid var(--border); border-radius: 999px;
+    }
+    .menu {
+      position: relative; display: inline-block;
+    }
+    .menu > button {
+      background: #2a384c; color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.35rem 0.75rem; font-weight: 600; cursor: pointer; font: inherit;
+    }
+    .menu-panel {
+      display: none; position: absolute; right: 0; top: calc(100% + 4px);
+      min-width: 200px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.35rem; z-index: 50;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .menu.open .menu-panel { display: block; }
+    .menu-panel a, .menu-panel button.menu-item {
+      display: block; width: 100%; text-align: left;
+      background: transparent; color: var(--text); border: none;
+      padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;
+      font: inherit; text-decoration: none; font-weight: 500;
+    }
+    .menu-panel a:hover, .menu-panel button.menu-item:hover { background: #243044; }
+    .menu-panel .sep { height: 1px; background: var(--border); margin: 0.25rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-wrap">
+      <a class="brand" href="/">{{ app_name|default('Deduplex') }}</a>
+      <span class="brand-sub">VAPT Effort Reduction</span>
+    </div>
+    <nav class="top-nav" aria-label="Primary">
+      <a href="/" class="{% if not engagement %}active{% endif %}">Home</a>
+      {% if engagement %}
+      <a href="/ui/engagements/{{ engagement.id }}" class="{% if active_tab == 'hub' %}active{% endif %}">Hub</a>
+      <a href="/ui/engagements/{{ engagement.id }}/import" class="{% if active_tab == 'import' %}active{% endif %}">Import</a>
+      <a href="/ui/engagements/{{ engagement.id }}/queue" class="{% if active_tab == 'queue' or active_tab == 'decide' %}active{% endif %}">Queue</a>
+      <a href="/ui/engagements/{{ engagement.id }}/retest" class="{% if active_tab == 'retest' %}active{% endif %}">Retest</a>
+      {% endif %}
+    </nav>
+    <span class="spacer"></span>
+    <span class="localhost-note" title="Lab build binds 127.0.0.1 only">localhost</span>
+    <div class="menu" id="help-menu">
+      <button type="button" aria-haspopup="true" aria-expanded="false" onclick="this.parentElement.classList.toggle('open')">File / Help ▾</button>
+      <div class="menu-panel" role="menu">
+        <a href="/" role="menuitem">Home — engagements</a>
+        {% if engagement %}
+        <a href="/ui/engagements/{{ engagement.id }}" role="menuitem">Engagement hub</a>
+        <a href="/ui/engagements/{{ engagement.id }}/import" role="menuitem">Import</a>
+        <a href="/ui/engagements/{{ engagement.id }}/queue" role="menuitem">Queue / Decide</a>
+        <a href="/api/exports/{{ engagement.id }}/tracker.csv" role="menuitem">Export CSV</a>
+        <a href="/api/exports/{{ engagement.id }}/tracker.xlsx" role="menuitem">Export XLSX</a>
+        <a href="/api/exports/{{ engagement.id }}/report.docx" role="menuitem">Export DOCX</a>
+        <a href="/ui/engagements/{{ engagement.id }}/retest" role="menuitem">Retest</a>
+        <div class="sep"></div>
+        {% endif %}
+        <a href="/api/health" target="_blank" rel="noopener" role="menuitem">Health</a>
+        {% if not auth_enabled %}
+        <a href="/docs" target="_blank" rel="noopener" role="menuitem">API docs</a>
+        {% endif %}
+        <button type="button" class="menu-item" role="menuitem" onclick="window.open(location.href,'_blank')">Open in browser</button>
+        <button type="button" class="menu-item" role="menuitem" onclick="alert('{{ app_name|default('Deduplex') }} {{ app_version|default('0.1.0') }}\n\nLocalhost-only lab.\nBind 127.0.0.1 · data under LocalAppData\\Deduplex')">About Deduplex</button>
+        <div class="sep"></div>
+        <button type="button" class="menu-item" role="menuitem" onclick="window.close()">Quit window</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    {% block flash %}
+    {% if flash_msg %}
+    <div class="flash {{ flash_type or 'ok' }}">
+      <span class="flash-label">{% if flash_type == 'error' %}Error{% elif flash_type == 'warn' %}Warning{% else %}Result{% endif %}</span>
+      {{ flash_msg }}
+    </div>
+    {% endif %}
+    {% endblock %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    document.addEventListener('click', function (e) {
+      var m = document.getElementById('help-menu');
+      if (m && !m.contains(e.target)) m.classList.remove('open');
+    });
+  </script>
+
+</body>
+</html>

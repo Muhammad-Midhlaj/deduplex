@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Engagements — {{ app_name|default('Deduplex') }}{% endblock %}
+{% block content %}
+<h1>Engagements</h1>
+<p class="muted">Local analyst lab: create an engagement → import sample scans → decide → export → retest.</p>
+
+<div class="card">
+  <h2>Create engagement</h2>
+  <form class="inline" method="post" action="/ui/engagements">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>Name <input name="name" required placeholder="Acme Q3 Network VAPT" /></label>
+    <label>Client <input name="client" placeholder="Acme Corp" /></label>
+    <label>Description <input name="description" placeholder="Optional" /></label>
+    <button type="submit">Create</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Existing</h2>
+  {% if engagements %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Name</th><th>Client</th><th>Queue</th><th>Last import</th><th>Exports</th><th>Open</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in engagements %}
+      {% set c = counts.get(e.id, {"pending": 0, "confirmed": 0, "total": 0}) %}
+      {% set li = last_imports.get(e.id) %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td><a href="/ui/engagements/{{ e.id }}"><strong>{{ e.name }}</strong></a></td>
+        <td>{{ e.client or "—" }}</td>
+        <td>
+          <div class="home-badges">
+            <span class="badge pending">{{ c.pending }} pending</span>
+            <span class="badge confirmed">{{ c.confirmed }} confirmed</span>
+            <span class="badge">{{ c.total }} total</span>
+          </div>
+        </td>
+        <td>
+          {% if li %}
+            <div class="mono" style="padding:0;border:none;background:transparent">{{ li.filename }}</div>
+            <div class="muted" style="font-size:0.8rem">{{ li.created_at }} · batch #{{ li.id }}</div>
+          {% else %}
+            <span class="muted">no imports</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="export-btns">
+            <a class="btn secondary" href="/api/exports/{{ e.id }}/tracker.csv">CSV</a>
+            <a class="btn secondary" href="/api/exports/{{ e.id }}/tracker.xlsx">XLSX</a>
+            <a class="btn secondary" href="/api/exports/{{ e.id }}/report.docx">DOCX</a>
+          </div>
+        </td>
+        <td>
+          <div class="btn-row">
+            <a class="btn" href="/ui/engagements/{{ e.id }}">Hub</a>
+            <a class="btn secondary" href="/ui/engagements/{{ e.id }}/queue">Queue</a>
+            <a class="btn secondary" href="/ui/engagements/{{ e.id }}/import">Import</a>
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No engagements yet. Create one above, then import sample Nmap/Nessus files from <code>sample_data/</code>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

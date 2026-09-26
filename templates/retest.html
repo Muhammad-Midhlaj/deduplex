@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Retest — {{ engagement.name }}{% endblock %}
+{% block content %}
+<p><a href="/">← Home</a> · <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
+<h1>Retest compare — {{ engagement.name }}</h1>
+
+{% include "_eng_tabs.html" %}
+
+<div class="card">
+  <h2>Compare import batches</h2>
+  <p class="muted">Pick a baseline (first scan) and a retest batch. Matching uses original finding ID, then asset+rule.</p>
+  {% if batches|length < 1 %}
+  <div class="empty-state">
+    <p>No import batches yet.</p>
+    <div class="btn-row">
+      <a class="btn" href="/ui/engagements/{{ engagement.id }}/import">Import scans</a>
+    </div>
+  </div>
+  {% else %}
+  <form method="post" action="/ui/engagements/{{ engagement.id }}/retest">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>Baseline batch
+      <select name="baseline_import_batch_id">
+        <option value="">All non-retest observations</option>
+        {% for b in batches %}
+        <option value="{{ b.id }}" {% if selected_baseline == b.id %}selected{% endif %}>
+          #{{ b.id }} {{ b.tool }} — {{ b.original_filename }} ({{ b.record_count }} obs){% if b.is_retest %} [retest]{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label style="display:block;margin-top:0.6rem">Retest batch
+      <select name="retest_import_batch_id" required>
+        {% for b in batches %}
+        <option value="{{ b.id }}" {% if selected_retest == b.id %}selected{% endif %}>
+          #{{ b.id }} {{ b.tool }} — {{ b.original_filename }} ({{ b.record_count }} obs){% if b.is_retest %} [retest]{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <p style="margin-top:0.8rem"><button type="submit">Run compare</button></p>
+  </form>
+  {% endif %}
+</div>
+
+{% if result %}
+{# Hero summary — keys from RetestCompareResult.summary: fixed / open / new #}
+<div class="stat-hero">
+  <div class="stat ok">
+    <span class="num">{{ result.summary.get('fixed', 0) }}</span>
+    <span class="lbl">Fixed</span>
+  </div>
+  <div class="stat warn">
+    <span class="num">{{ result.summary.get('open', 0) }}</span>
+    <span class="lbl">Still open</span>
+  </div>
+  <div class="stat accent">
+    <span class="num">{{ result.summary.get('new', 0) }}</span>
+    <span class="lbl">New</span>
+  </div>
+</div>
+
+{% macro match_table(rows, empty_label) %}
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th><th>Retest obs</th><th>Baseline obs</th><th>Match</th><th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in rows %}
+      <tr>
+        <td><span class="badge {{ m.status }}">{{ m.status }}</span></td>
+        <td>{% if m.retest_observation_id %}#{{ m.retest_observation_id }}{% else %}—{% endif %}</td>
+        <td>{% if m.matched_observation_id %}#{{ m.matched_observation_id }}{% else %}—{% endif %}</td>
+        <td class="muted">{{ m.match_method or "—" }}</td>
+        <td class="muted">
+          {{ m.details.get("rule_id", "") }}
+          {% if m.details.get("title") %} — {{ m.details.get("title") }}{% endif %}
+          {% if m.details.get("severity") %} · sev {{ m.details.get("severity") }}{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">{{ empty_label }}</p>
+  {% endif %}
+{% endmacro %}
+
+<div class="card">
+  <h2>Fixed <span class="badge fixed">{{ fixed|length }}</span></h2>
+  {{ match_table(fixed, "None fixed.") }}
+</div>
+<div class="card">
+  <h2>Still open <span class="badge open">{{ still_open|length }}</span></h2>
+  {{ match_table(still_open, "None still open.") }}
+</div>
+<div class="card">
+  <h2>New <span class="badge new">{{ new_findings|length }}</span></h2>
+  {{ match_table(new_findings, "No new findings.") }}
+</div>
+{% if other_matches %}
+<div class="card">
+  <h2>Other <span class="badge">{{ other_matches|length }}</span></h2>
+  {{ match_table(other_matches, "None.") }}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

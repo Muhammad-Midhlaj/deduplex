@@ -1,0 +1,9 @@
+<nav class="eng-tabs" aria-label="Engagement workspace">
+  <a href="/ui/engagements/{{ engagement.id }}" class="{% if active_tab == 'hub' %}active{% endif %}">Hub</a>
+  <a href="/ui/engagements/{{ engagement.id }}/import" class="{% if active_tab == 'import' %}active{% endif %}">Import</a>
+  <a href="/ui/engagements/{{ engagement.id }}/queue" class="{% if active_tab == 'queue' %}active{% endif %}">Queue / Decide</a>
+  <a href="/api/exports/{{ engagement.id }}/tracker.csv" class="{% if active_tab == 'exports' %}active{% endif %}">Exports ▾ CSV</a>
+  <a href="/api/exports/{{ engagement.id }}/tracker.xlsx">XLSX</a>
+  <a href="/api/exports/{{ engagement.id }}/report.docx">DOCX</a>
+  <a href="/ui/engagements/{{ engagement.id }}/retest" class="{% if active_tab == 'retest' %}active{% endif %}">Retest</a>
+</nav>

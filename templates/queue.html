@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Queue — {{ engagement.name }}{% endblock %}
+{% block content %}
+<p><a href="/">← Home</a> · <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
+<h1>{{ engagement.name }}</h1>
+<p class="muted">Client: {{ engagement.client or "—" }} · Engagement #{{ engagement.id }}</p>
+
+{% include "_eng_tabs.html" %}
+
+<div class="stat-hero">
+  <div class="stat accent">
+    <span class="num">{{ status_counts.get('pending', 0) }}</span>
+    <span class="lbl">Pending</span>
+  </div>
+  <div class="stat ok">
+    <span class="num">{{ status_counts.get('confirmed', 0) }}</span>
+    <span class="lbl">Confirmed</span>
+  </div>
+  <div class="stat danger">
+    <span class="num">{{ status_counts.get('false_positive', 0) }}</span>
+    <span class="lbl">False positive</span>
+  </div>
+  <div class="stat muted">
+    <span class="num">{{ status_counts.get('all', 0) }}</span>
+    <span class="lbl">Total</span>
+  </div>
+</div>
+
+<div class="btn-row" style="margin-bottom:1rem">
+  <a class="btn" href="/ui/engagements/{{ engagement.id }}/import">Import scan</a>
+  <a class="btn ok" href="/api/exports/{{ engagement.id }}/tracker.csv">Export CSV</a>
+  <a class="btn ok" href="/api/exports/{{ engagement.id }}/tracker.xlsx">Export XLSX</a>
+  <a class="btn ok" href="/api/exports/{{ engagement.id }}/report.docx">Export DOCX</a>
+</div>
+
+<nav class="filter-chips" aria-label="Queue status filter">
+  {% for s in statuses %}
+    <a href="?status={{ s }}" class="{% if status == s %}active{% endif %}">
+      {{ s }} <span class="count">{{ status_counts.get(s, 0) }}</span>
+    </a>
+  {% endfor %}
+  <a href="?status=all" class="{% if status == 'all' %}active{% endif %}">
+    all <span class="count">{{ status_counts.get('all', 0) }}</span>
+  </a>
+</nav>
+
+<div class="card">
+  <h2>Analyst queue {% if status %}<span class="badge {{ status if status != 'all' else '' }}">{{ status }}</span>{% endif %}</h2>
+  {% if groups %}
+  <table>
+    <thead>
+      <tr>
+        <th>Priority</th><th>Severity</th><th>Title</th><th>Asset</th>
+        <th>Tool/Rule</th><th>Obs</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for g in groups %}
+      <tr>
+        <td><strong>{{ '%.2f'|format(g.priority_score) }}</strong></td>
+        <td><span class="badge {{ g.severity or '' }}">{{ g.severity or 'n/a' }}</span></td>
+        <td><a href="/ui/finding-groups/{{ g.id }}"><strong>{{ g.title or g.rule_id }}</strong></a></td>
+        <td class="mono" style="padding:0.4rem;border:none;background:transparent">
+          {% if g.asset %}
+            {{ g.asset.hostname or '' }} {{ g.asset.ip_address or '' }}
+            {% if g.asset.port %}{{ g.asset.port }}/{{ g.asset.protocol }}{% endif %}
+          {% endif %}
+        </td>
+        <td class="mono" style="padding:0.4rem;border:none;background:transparent">{{ g.tool }} / {{ g.rule_id }}</td>
+        <td>{{ g.observations|length }}</td>
+        <td><span class="badge {{ g.queue_status.value }}">{{ g.queue_status.value }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    {% if status_counts.get('all', 0) == 0 %}
+      <p>No pending items — Import a scan</p>
+      <div class="btn-row">
+        <a class="btn" href="/ui/engagements/{{ engagement.id }}/import">Import a scan</a>
+      </div>
+    {% elif status == 'pending' and status_counts.get('pending', 0) == 0 %}
+      <p>All decided — Export CSV</p>
+      <div class="btn-row">
+        <a class="btn ok" href="/api/exports/{{ engagement.id }}/tracker.csv">Export CSV</a>
+        <a class="btn secondary" href="?status=all">View all findings</a>
+        <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}/import">Import another scan</a>
+      </div>
+    {% else %}
+      <p>No finding groups for filter “{{ status }}”.</p>
+      <div class="btn-row">
+        <a class="btn secondary" href="?status=all">Show all</a>
+        <a class="btn" href="/ui/engagements/{{ engagement.id }}/import">Import a scan</a>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
