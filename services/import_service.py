@@ -14,12 +14,13 @@ from app.models import EvidenceFile, ImportBatch, ImportStatus, Observation
 from app.schemas import ImportResult
 from importers.nessus import parse_nessus
 from importers.nmap_xml import parse_nmap_xml
+from importers.nuclei_jsonl import parse_nuclei_jsonl
 from services.asset_mapping import get_or_create_asset
 from services.grouping import attach_observation_to_group, build_duplicate_key
 from services.laya_triage import recommend_triage
 
 
-SUPPORTED_TOOLS = {"nmap", "nessus"}
+SUPPORTED_TOOLS = {"nmap", "nessus", "nuclei"}
 
 
 def _sha256_file(path: Path) -> str:
@@ -39,10 +40,12 @@ def _detect_tool(filename: str, tool_hint: str | None) -> str:
     lower = filename.lower()
     if lower.endswith(".nessus") or "nessus" in lower:
         return "nessus"
+    if lower.endswith(".jsonl") or "nuclei" in lower:
+        return "nuclei"
     if lower.endswith(".xml") or "nmap" in lower:
         return "nmap"
     raise ValueError(
-        f"Cannot detect tool from filename '{filename}'. Pass tool=nmap|nessus."
+        f"Cannot detect tool from filename '{filename}'. Pass tool=nmap|nessus|nuclei."
     )
 
 
@@ -91,7 +94,11 @@ def import_scanner_file(
     evidence = EvidenceFile(
         import_batch_id=batch.id,
         relative_path=str(stored_path),
-        content_type="application/xml",
+        content_type=(
+            "application/x-ndjson"
+            if detected_tool == "nuclei"
+            else "application/xml"
+        ),
         sha256=digest,
         size_bytes=size_bytes,
     )
@@ -101,6 +108,8 @@ def import_scanner_file(
     try:
         if detected_tool == "nmap":
             parsed = parse_nmap_xml(stored_path)
+        elif detected_tool == "nuclei":
+            parsed = parse_nuclei_jsonl(stored_path)
         else:
             parsed = parse_nessus(stored_path)
 

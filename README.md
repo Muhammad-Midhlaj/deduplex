@@ -24,7 +24,7 @@ See also: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [C
 | Capability | Notes |
 |------------|--------|
 | Import | Nmap XML and Nessus exports |
-| Local scans (Wave 1) | **Explicit Start** only: Nmap -sV -T4 -oX (Nuclei Wave 1b). PATH/allowlist binary, one job at a time, timeout/cancel. Never auto-start. |
+| Local scans (Wave 1) | **Explicit Start** only: Nmap -sT -sV -T4 -oX (Windows-friendly connect; optional SYN -sS; Nuclei Wave 1b). PATH/allowlist binary, one job at a time, timeout/cancel. Never auto-start. |
 | Exact dedupe | Groups on `tool\|rule_id\|asset.canonical_key` (no fuzzy merge in this release) |
 | Analyst queue | Decisions with reason/history; exports are **confirmed-only** |
 | Retest | Compare baseline vs retest import batches (fixed / still open / new) |

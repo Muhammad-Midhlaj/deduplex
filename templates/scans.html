@@ -21,7 +21,7 @@
   <h2>Run Nmap (Wave 1)</h2>
   <p class="muted" style="margin-top:0">
     Draft only — nothing runs until you click <strong>Start</strong>.
-    Default profile: <code>-sV -T4</code> with <code>-oX</code> into the job directory.
+    Default profile: <code>-sT -sV -T4</code> (TCP connect — works without admin on Windows) with <code>-oX</code> into the job directory. Optional SYN needs elevation; if a SYN run yields only <code>unknown</code> ports, Deduplex retries once with <code>-sT</code>.
     Binary resolved from PATH and allowlisted on first use.
   </p>
   {% if nmap_path %}
@@ -37,7 +37,8 @@
     </label>
     <label style="margin-top:0.6rem">Profile
       <select name="profile_name">
-        <option value="sv_t4" selected>sv_t4 (−sV −T4)</option>
+        <option value="st_sv_t4" selected>st_sv_t4 (−sT −sV −T4, default / Windows)</option>
+        <option value="ss_sv_t4">ss_sv_t4 (−sS −sV −T4, needs admin)</option>
       </select>
     </label>
     <label style="margin-top:0.6rem">Binary override (optional)

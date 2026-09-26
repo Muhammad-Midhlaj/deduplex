@@ -1,6 +1,6 @@
 """Scan job rails: draft → explicit Start → run → import → queue.
 
-Wave 1: Nmap (-sV -T4 -oX). Wave 1b: Nuclei (-jsonl). Nessus stays file-import only.
+Wave 1: Nmap default -sT -sV -T4 -oX (Windows-friendly connect). Optional -sS -sV -T4 for elevated SYN. Auto-fallback to -sT if SYN yields all-unknown ports. Wave 1b: Nuclei (-jsonl). Nessus stays file-import only.
 Safety: PATH resolve + binary allowlist, one job globally, timeout, cancel kill-tree,
 never auto-start, no shell=True.
 """
@@ -29,9 +29,14 @@ DEFAULT_TIMEOUT_SECONDS = 3600
 ACTIVE_STATUSES = (ScanJobStatus.QUEUED, ScanJobStatus.RUNNING)
 
 # Profiles: name → argv flag list (output path flags added by builder).
+# Default is TCP connect (-sT): works without admin on Windows.
+# SYN (-sS) needs elevation; kept as optional. Legacy name sv_t4 maps to connect.
 NMAP_PROFILES: dict[str, list[str]] = {
-    "sv_t4": ["-sV", "-T4"],
+    "st_sv_t4": ["-sT", "-sV", "-T4"],
+    "ss_sv_t4": ["-sS", "-sV", "-T4"],
+    "sv_t4": ["-sT", "-sV", "-T4"],  # legacy alias → connect (not bare -sV)
 }
+DEFAULT_NMAP_PROFILE = "st_sv_t4"
 NUCLEI_PROFILES: dict[str, list[str]] = {
     "default": [],
 }
@@ -151,7 +156,7 @@ def split_targets(targets_text: str) -> list[str]:
 def profile_flags_for(tool: str, profile_name: str | None) -> tuple[str, list[str]]:
     tool = tool.lower().strip()
     if tool == "nmap":
-        name = (profile_name or "sv_t4").strip() or "sv_t4"
+        name = (profile_name or DEFAULT_NMAP_PROFILE).strip() or DEFAULT_NMAP_PROFILE
         flags = NMAP_PROFILES.get(name)
         if flags is None:
             raise ScanJobError(f"Unknown nmap profile: {name}")
@@ -172,10 +177,43 @@ def build_nmap_argv(
     xml_path: Path,
     profile_flags: list[str] | None = None,
 ) -> list[str]:
-    flags = list(profile_flags if profile_flags is not None else NMAP_PROFILES["sv_t4"])
+    flags = list(profile_flags if profile_flags is not None else NMAP_PROFILES[DEFAULT_NMAP_PROFILE])
     # -oX writes absolute path so cwd is irrelevant.
     return [binary, *flags, "-oX", str(xml_path), *targets]
 
+
+
+
+def nmap_xml_all_ports_unknown(path: Path) -> bool:
+    """True when XML has port entries but none open/closed/filtered — typical non-elevated SYN on Windows."""
+    try:
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(path).getroot()
+    except Exception:  # noqa: BLE001
+        return False
+    states: set[str] = set()
+    for port in root.iter("port"):
+        state_el = port.find("state")
+        if state_el is None:
+            continue
+        st = (state_el.get("state") or "").lower()
+        if st:
+            states.add(st)
+    if not states:
+        return False
+    useful = {"open", "closed", "filtered", "unfiltered", "open|filtered"}
+    return states.isdisjoint(useful) and "unknown" in states
+
+
+def _flags_use_connect(flags: list[str]) -> bool:
+    return "-sT" in flags
+
+
+def _flags_to_connect(flags: list[str]) -> list[str]:
+    out = [f for f in flags if f not in ("-sS", "-sT", "-sA", "-sW", "-sM", "-sN", "-sF", "-sX")]
+    # Keep -sV / -T* etc.; insert -sT near front
+    return ["-sT", *[f for f in out if f != "-sT"]]
 
 def build_nuclei_argv(
     binary: str,
@@ -472,6 +510,70 @@ def _run_job_worker(job_id: int) -> None:
             db.add(job)
             db.commit()
             return
+
+        # Non-elevated Windows SYN often yields ports state=unknown and 0 observations.
+        # One automatic reconnect with -sT when the first pass was not already connect-scan.
+        if (
+            job.tool == "nmap"
+            and not _flags_use_connect(profile_flags)
+            and nmap_xml_all_ports_unknown(artifact)
+            and not _cancel_requested.get(job_id)
+        ):
+            connect_flags = _flags_to_connect(profile_flags)
+            fallback_xml = artifact.with_name("scan_connect.xml")
+            argv2 = build_nmap_argv(
+                binary, targets, xml_path=fallback_xml, profile_flags=connect_flags
+            )
+            with log_path.open("a", encoding="utf-8") as logf:
+                logf.write(
+                    "\n# auto-fallback: SYN/unknown ports → retry with -sT\n"
+                    f"# argv: {argv2!r}\n"
+                )
+                logf.flush()
+                proc2 = subprocess.Popen(
+                    argv2,
+                    stdout=logf,
+                    stderr=subprocess.STDOUT,
+                    shell=False,
+                    **_popen_kwargs(),
+                )
+                with _worker_lock:
+                    _active_procs[job_id] = proc2
+                job.pid = proc2.pid
+                db.add(job)
+                db.commit()
+                deadline2 = time.monotonic() + max(
+                    30, int(job.timeout_seconds or DEFAULT_TIMEOUT_SECONDS)
+                )
+                while proc2.poll() is None:
+                    if _cancel_requested.get(job_id):
+                        _kill_process_tree(proc2)
+                        break
+                    if time.monotonic() > deadline2:
+                        _kill_process_tree(proc2)
+                        break
+                    time.sleep(0.25)
+            if _cancel_requested.get(job_id):
+                job = db.get(ScanJob, job_id)
+                if job:
+                    job.status = ScanJobStatus.CANCELLED
+                    job.finished_at = utcnow()
+                    job.error_message = "Cancelled by user"
+                    db.add(job)
+                    db.commit()
+                return
+            if proc2.returncode == 0 and fallback_xml.is_file():
+                try:
+                    fallback_xml.replace(artifact)
+                except OSError:
+                    import shutil as _shutil
+
+                    _shutil.copy2(fallback_xml, artifact)
+                profile_flags = connect_flags
+                job.profile_flags = " ".join(connect_flags)
+                job.error_message = None
+                db.add(job)
+                db.commit()
 
         # Feed existing import pipeline.
         try:

@@ -10,10 +10,12 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
-- **Wave 1 ScanJobs**: draft → explicit Start → Nmap `-sV -T4 -oX` → auto-import; Nuclei JSONL (Wave 1b); UI **Scans** tab; API `/api/scan-jobs`; binary allowlist + one-at-a-time + timeout/cancel.
+- **Wave 1 ScanJobs**: draft → explicit Start → Nmap `-sT -sV -T4 -oX` (Windows connect default; optional SYN) → auto-import; Nuclei JSONL (Wave 1b); UI **Scans** tab; API `/api/scan-jobs`; binary allowlist + one-at-a-time + timeout/cancel.
 - Open-source readiness docs drafts: CONTRIBUTING, SECURITY, issue/PR templates (packaging for public `deduplex` repo).
 
 ### Changed
+
+- **Windows Nmap default profile** `st_sv_t4`: `-sT -sV -T4` (no admin). Optional `ss_sv_t4` SYN; legacy `sv_t4` aliases to connect; one auto-fallback if SYN yields only unknown ports.
 
 - Public product naming centers on **Deduplex** (desktop exe / Setup / LocalAppData); internal folder name may remain `vapt-effort-reduction`.
 

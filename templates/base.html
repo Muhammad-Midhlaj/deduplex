@@ -61,6 +61,10 @@
     .badge.fixed { background: #163528; color: var(--ok); }
     .badge.open { background: #3a3218; color: var(--warn); }
     .badge.new { background: #243044; color: var(--accent); }
+    .badge.draft { background: #243044; color: var(--muted); }
+    .badge.queued, .badge.running { background: #243044; color: var(--accent); }
+    .badge.succeeded, .badge.completed { background: #163528; color: var(--ok); }
+    .badge.failed, .badge.cancelled { background: #3a1f24; color: var(--danger); }
     form.inline { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; }
     label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
     input, select, textarea {

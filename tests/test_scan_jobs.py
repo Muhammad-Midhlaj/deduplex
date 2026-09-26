@@ -102,7 +102,8 @@ def test_create_draft_never_running(db_session, engagement, app_data, tmp_path):
             targets_text="127.0.0.1",
         )
     assert job.status == ScanJobStatus.DRAFT
-    assert job.profile_name == "sv_t4"
+    assert job.profile_name == "st_sv_t4"
+    assert "-sT" in job.profile_flags
     assert "-sV" in job.profile_flags
 
 
@@ -216,3 +217,50 @@ def test_nuclei_jsonl_importer(tmp_path):
     assert obs.tool == "nuclei"
     assert obs.rule_id == "tech-detect"
     assert obs.severity == "info"
+
+
+def test_default_nmap_profile_is_connect():
+    name, flags = sj.profile_flags_for("nmap", None)
+    assert name == "st_sv_t4"
+    assert flags == ["-sT", "-sV", "-T4"]
+
+
+def test_syn_profile_optional():
+    name, flags = sj.profile_flags_for("nmap", "ss_sv_t4")
+    assert name == "ss_sv_t4"
+    assert flags == ["-sS", "-sV", "-T4"]
+
+
+def test_legacy_sv_t4_aliases_to_connect():
+    name, flags = sj.profile_flags_for("nmap", "sv_t4")
+    assert "-sT" in flags
+
+
+def test_nmap_xml_all_ports_unknown(tmp_path):
+    xml = tmp_path / "u.xml"
+    xml.write_text(
+        """<?xml version="1.0"?>
+        <nmaprun>
+          <host><ports>
+            <port protocol="tcp" portid="80"><state state="unknown"/></port>
+            <port protocol="tcp" portid="443"><state state="unknown"/></port>
+          </ports></host>
+        </nmaprun>""",
+        encoding="utf-8",
+    )
+    assert sj.nmap_xml_all_ports_unknown(xml) is True
+    xml2 = tmp_path / "o.xml"
+    xml2.write_text(
+        """<?xml version="1.0"?>
+        <nmaprun>
+          <host><ports>
+            <port protocol="tcp" portid="80"><state state="open"/></port>
+          </ports></host>
+        </nmaprun>""",
+        encoding="utf-8",
+    )
+    assert sj.nmap_xml_all_ports_unknown(xml2) is False
+
+
+def test_flags_to_connect_strips_syn():
+    assert sj._flags_to_connect(["-sS", "-sV", "-T4"]) == ["-sT", "-sV", "-T4"]
