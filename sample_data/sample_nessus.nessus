@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<NessusClientData_v2>
+  <Policy>
+    <policyName>Basic Network Scan</policyName>
+  </Policy>
+  <Report name="Lab Network Scan">
+    <ReportHost name="192.168.1.10">
+      <HostProperties>
+        <tag name="host-ip">192.168.1.10</tag>
+        <tag name="host-fqdn">web.lab.local</tag>
+        <tag name="HOST_START">Tue Sep 23 10:05:00 2026</tag>
+        <tag name="HOST_END">Tue Sep 23 10:20:00 2026</tag>
+      </HostProperties>
+      <ReportItem port="443" svc_name="https" protocol="tcp" severity="3" pluginID="104743" pluginName="SSL/TLS CCS Injection" pluginFamily="Service Detection">
+        <description>The remote service is affected by the OpenSSL CCS Injection vulnerability (CVE-2014-0224).</description>
+        <synopsis>SSL/TLS CCS Injection vulnerability detected.</synopsis>
+        <plugin_output>The server accepted a crafted CCS sequence.</plugin_output>
+        <cve>CVE-2014-0224</cve>
+        <cvss_base_score>5.8</cvss_base_score>
+        <cvss3_base_score>7.4</cvss3_base_score>
+      </ReportItem>
+      <ReportItem port="80" svc_name="www" protocol="tcp" severity="2" pluginID="11213" pluginName="HTTP TRACE / TRACK Methods Allowed" pluginFamily="Web Servers">
+        <description>The remote web server supports the TRACE and/or TRACK methods.</description>
+        <synopsis>HTTP TRACE method is enabled.</synopsis>
+        <plugin_output>TRACE / HTTP/1.1 returned 200.</plugin_output>
+        <cvss_base_score>5.0</cvss_base_score>
+      </ReportItem>
+      <ReportItem port="0" svc_name="general" protocol="tcp" severity="0" pluginID="19506" pluginName="Nessus Scan Information" pluginFamily="Settings">
+        <description>This plugin displays information about the Nessus scan.</description>
+        <synopsis>Information about the scan.</synopsis>
+        <plugin_output>Scan duration: 15 minutes</plugin_output>
+      </ReportItem>
+      <ReportItem port="22" svc_name="ssh" protocol="tcp" severity="1" pluginID="70658" pluginName="SSH Server CBC Mode Ciphers Enabled" pluginFamily="Misc.">
+        <description>The SSH server is configured to support Cipher Block Chaining (CBC) encryption.</description>
+        <synopsis>Weak SSH ciphers.</synopsis>
+        <plugin_output>The following CBC ciphers are supported: aes128-cbc</plugin_output>
+        <cvss_base_score>2.6</cvss_base_score>
+      </ReportItem>
+    </ReportHost>
+    <ReportHost name="192.168.1.11">
+      <HostProperties>
+        <tag name="host-ip">192.168.1.11</tag>
+        <tag name="host-fqdn">db.lab.local</tag>
+        <tag name="HOST_START">Tue Sep 23 10:05:00 2026</tag>
+      </HostProperties>
+      <ReportItem port="3306" svc_name="mysql" protocol="tcp" severity="3" pluginID="55446" pluginName="MySQL Server Unsupported Version Detection" pluginFamily="Databases">
+        <description>The installed version of MySQL is no longer supported.</description>
+        <synopsis>Unsupported MySQL version.</synopsis>
+        <plugin_output>Version 5.7.40 detected.</plugin_output>
+        <cvss3_base_score>7.5</cvss3_base_score>
+      </ReportItem>
+      <!-- Intentional duplicate-ish: same plugin on same host/port would group on re-import -->
+      <ReportItem port="3306" svc_name="mysql" protocol="tcp" severity="2" pluginID="155155" pluginName="MySQL Empty Password" pluginFamily="Databases">
+        <description>The remote MySQL server accepts connections with an empty password for at least one account.</description>
+        <synopsis>Empty MySQL password.</synopsis>
+        <plugin_output>User root has empty password.</plugin_output>
+        <cvss_base_score>7.5</cvss_base_score>
+        <cve>CVE-2002-1809</cve>
+      </ReportItem>
+    </ReportHost>
+  </Report>
+</NessusClientData_v2>

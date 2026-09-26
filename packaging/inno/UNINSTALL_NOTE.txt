@@ -1,0 +1,26 @@
+Deduplex — after install / uninstall note
+=========================================
+
+App data (SQLite DB + evidence uploads) lives under:
+
+  %LOCALAPPDATA%\Deduplex\
+
+Default uninstall does NOT delete that folder. DB and evidence remain
+unless you opt in to a wipe.
+
+Optional full wipe — two supported paths:
+  1. Start Menu → "Remove Deduplex app data (optional)"
+     Runs {app}\Wipe-DeduplexData.bat: prints the target folder, asks Y/N,
+     then rmdir /s /q that LocalAppData\Deduplex folder only. Exits safely if missing.
+  2. Uninstaller prompt: after files are removed, MsgBox asks
+     "Also delete application data under LocalAppData\Deduplex?
+     (DB + evidence)" — Yes/No with No as the default. Only Yes runs DelTree.
+
+Silent uninstall (/SILENT, /VERYSILENT, including QuietUninstallString) always
+KEEPS LocalAppData\Deduplex — no MsgBox, no DelTree. Interactive Yes only wipes.
+
+There is no unconditional [UninstallDelete] of LocalAppData.
+Wipe / DelTree targets Deduplex ONLY — never auto-deletes the legacy
+%LOCALAPPDATA%\VAPTEffortReduction\ folder (remove manually if desired).
+
+Lab build: binds 127.0.0.1 only; AUTH_ENABLED=false.

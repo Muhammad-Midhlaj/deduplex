@@ -1,0 +1,7 @@
+# Build-time deps for the Windows desktop spike (PyInstaller).
+# Prefer a dedicated venv without laya/torch when possible:
+#   python -m venv .venv-desktop
+#   .venv-desktop\Scripts\Activate.ps1
+#   pip install -r requirements-desktop.txt -r requirements-desktop-build.txt
+-r requirements-desktop.txt
+pyinstaller>=6.3.0

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sV -sC -oX sample_nmap.xml 192.168.1.10 192.168.1.11" start="1790157600" startstr="Tue Sep 23 10:00:00 2026" version="7.94" xmloutputversion="1.05">
+  <host starttime="1790157600" endtime="1790157660">
+    <status state="up" reason="echo-reply"/>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="web.lab.local" type="PTR"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="OpenSSH" version="8.9p1" method="probed"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack"/>
+        <service name="http" product="nginx" version="1.24.0" method="probed"/>
+        <script id="http-title" output="Welcome to lab"/>
+        <script id="http-slowloris-check" output="LIKELY VULNERABLE: Slowloris DoS attack possible"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack"/>
+        <service name="https" product="nginx" version="1.24.0" method="probed"/>
+        <script id="ssl-ccs-injection" output="VULNERABLE: SSL/TLS CCS Injection (CVE-2014-0224)"/>
+      </port>
+    </ports>
+  </host>
+  <host starttime="1790157600" endtime="1790157670">
+    <status state="up" reason="echo-reply"/>
+    <address addr="192.168.1.11" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="db.lab.local" type="PTR"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="3306">
+        <state state="open" reason="syn-ack"/>
+        <service name="mysql" product="MySQL" version="5.7.40" method="probed"/>
+        <script id="mysql-info" output="Protocol: 10&#10;Version: 5.7.40"/>
+      </port>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="OpenSSH" version="8.9p1" method="probed"/>
+      </port>
+    </ports>
+  </host>
+  <!-- Duplicate of web:80 http-slowloris-check would be same key if re-imported -->
+</nmaprun>

@@ -1,0 +1,44 @@
+# Environments / secrets
+.venv/
+.venv-desktop/
+.env
+*.egg-info/
+.mypy_cache/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Build / packaging outputs
+dist/
+build/
+
+# Private / local data (never ship)
+data/
+finetune/
+*.pt
+NUL
+
+# Fine-tune / evidence leftovers if recreated locally
+data/finetune/datasets/
+data/finetune/runs/
+data/vapt.db
+data/vapt_perf.db
+data/evidence/**
+data/evidence_perf/
+data/perf_dummy/
+
+# Perf fixtures (regenerate via scripts/generate_perf_fixtures.py)
+sample_data/perf/*.xml
+sample_data/perf/*.nessus
+
+# Archives / lab exports
+*.tgz
+*.xlsx
+*.docx
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store

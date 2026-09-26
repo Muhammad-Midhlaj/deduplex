@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Import — {{ engagement.name }}{% endblock %}
+{% block content %}
+<p><a href="/">← Home</a> · <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
+<h1>Import scan — {{ engagement.name }}</h1>
+
+{% include "_eng_tabs.html" %}
+
+{# Flash already rendered in base; add next-step CTAs when an import just succeeded #}
+{% if flash_msg and flash_type == 'ok' %}
+<div class="card" style="border-color:var(--ok)">
+  <h2 style="color:var(--ok);margin-bottom:0.5rem">What next?</h2>
+  <div class="btn-row">
+    <a class="btn" href="/ui/engagements/{{ engagement.id }}/queue">Open queue</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}">Back to hub</a>
+    <a class="btn secondary" href="/ui/engagements/{{ engagement.id }}/retest">Retest compare</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Upload scanner file</h2>
+  <form method="post" action="/ui/engagements/{{ engagement.id }}/import" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>Tool
+      <select name="tool">
+        <option value="">Auto-detect</option>
+        <option value="nmap">nmap</option>
+        <option value="nessus">nessus</option>
+      </select>
+    </label>
+    <label style="display:block;margin-top:0.6rem">Retest import?
+      <select name="is_retest">
+        <option value="false">No — baseline / first scan</option>
+        <option value="true">Yes — mark observations as retest</option>
+      </select>
+    </label>
+    <p class="muted" style="margin:0.35rem 0 0.6rem;font-size:0.85rem">
+      Check <strong>Yes</strong> when uploading a follow-up scan for retest comparison.
+    </p>
+    <label style="display:block;margin-top:0.6rem">Scanner file
+      <input type="file" name="file" accept=".xml,.nessus" required />
+    </label>
+    <p style="margin-top:0.8rem"><button type="submit">Upload &amp; import</button></p>
+  </form>
+  <p class="muted">Raw files are stored under <code>data/evidence/{{ engagement.id }}/</code>. Sample files live in <code>sample_data/</code>.</p>
+</div>
+
+<div class="card">
+  <h2>Recent batches</h2>
+  {% if batches %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Tool</th><th>Filename</th><th>Status</th>
+        <th>Obs</th><th>Retest?</th><th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for b in batches %}
+      <tr>
+        <td>{{ b.id }}</td>
+        <td>{{ b.tool }}</td>
+        <td>{{ b.original_filename }}</td>
+        <td><span class="badge {{ b.status }}">{{ b.status }}</span></td>
+        <td>{{ b.record_count }}</td>
+        <td>{% if b.is_retest %}<span class="badge">retest</span>{% else %}—{% endif %}</td>
+        <td class="muted">{{ b.created_at }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No batches yet for this engagement.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
