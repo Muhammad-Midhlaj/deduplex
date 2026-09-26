@@ -1,8 +1,8 @@
-{% extends "base.html" %}
-{% block title %}Scans — {{ engagement.name }}{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Scans â€” {{ engagement.name }}{% endblock %}
 {% block content %}
-<p><a href="/">← Home</a> · <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
-<h1>Scanner jobs — {{ engagement.name }}</h1>
+<p><a href="/">â† Home</a> Â· <a href="/ui/engagements/{{ engagement.id }}">Hub</a></p>
+<h1>Scanner jobs â€” {{ engagement.name }}</h1>
 
 {% include "_eng_tabs.html" %}
 
@@ -20,14 +20,14 @@
 <div class="card">
   <h2>Run Nmap (Wave 1)</h2>
   <p class="muted" style="margin-top:0">
-    Draft only — nothing runs until you click <strong>Start</strong>.
-    Default profile: <code>-sT -sV -T4</code> (TCP connect — works without admin on Windows) with <code>-oX</code> into the job directory. Optional SYN needs elevation; if a SYN run yields only <code>unknown</code> ports, Deduplex retries once with <code>-sT</code>.
+    Draft only â€” nothing runs until you click <strong>Start</strong>.
+    Default profile: <code>-sT -sV -T4</code> (TCP connect â€” works without admin on Windows) with <code>-oX</code> into the job directory. Optional SYN needs elevation; if a SYN run yields only <code>unknown</code> ports, Deduplex retries once with <code>-sT</code>.
     Binary resolved from PATH and allowlisted on first use.
   </p>
   {% if nmap_path %}
   <p class="muted">nmap on PATH: <code class="mono" style="padding:0.2rem 0.4rem">{{ nmap_path }}</code></p>
   {% else %}
-  <p class="muted" style="color:var(--warn)">nmap not found on PATH — create draft will fail until installed or path overridden.</p>
+  <p class="muted" style="color:var(--warn)">nmap not found on PATH â€” create draft will fail until installed or path overridden.</p>
   {% endif %}
   <form method="post" action="/ui/engagements/{{ engagement.id }}/scans">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
@@ -37,8 +37,8 @@
     </label>
     <label style="margin-top:0.6rem">Profile
       <select name="profile_name">
-        <option value="st_sv_t4" selected>st_sv_t4 (−sT −sV −T4, default / Windows)</option>
-        <option value="ss_sv_t4">ss_sv_t4 (−sS −sV −T4, needs admin)</option>
+        <option value="st_sv_t4" selected>st_sv_t4 (âˆ’sT âˆ’sV âˆ’T4, default / Windows)</option>
+        <option value="ss_sv_t4">ss_sv_t4 (âˆ’sS âˆ’sV âˆ’T4, needs admin)</option>
       </select>
     </label>
     <label style="margin-top:0.6rem">Binary override (optional)
@@ -65,7 +65,7 @@
     <p style="margin-top:0.8rem"><button type="submit">Create draft</button></p>
   </form>
   {% else %}
-  <p class="muted">nuclei not found on PATH — install or set allowlisted path later. Coming online when binary is available.</p>
+  <p class="muted">nuclei not found on PATH â€” install or set allowlisted path later. Coming online when binary is available.</p>
   {% endif %}
 </div>
 
@@ -82,14 +82,14 @@
   </div>
   <div class="card" style="opacity:0.75">
     <h2>Cloud scanners <span class="badge">Coming</span></h2>
-    <p class="muted">Qualys / InsightVM / other cloud connectors — Coming cards only.</p>
+    <p class="muted">Qualys / InsightVM / other cloud connectors â€” Coming cards only.</p>
     <button type="button" disabled class="secondary">Not available</button>
   </div>
 </div>
 
 <div class="card">
   <h2>Jobs</h2>
-  <p class="muted">Only one job may be queued/running globally. Cancel kills the process tree.</p>
+  <p class="muted">Only one job may be queued/running globally. Cancel kills the process tree. Click <strong>Log</strong> to follow stdout in the terminal below.</p>
   {% if jobs %}
   <table>
     <thead>
@@ -98,22 +98,23 @@
         <th>Import</th><th>Started</th><th>Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="scan-jobs-tbody">
     {% for j in jobs %}
-      <tr>
+      <tr class="scan-job-row" data-job-id="{{ j.id }}" data-status="{{ j.status }}" data-started="{{ j.started_at or '' }}">
         <td>{{ j.id }}</td>
         <td>{{ j.tool }}</td>
-        <td><span class="badge {{ j.status }}">{{ j.status }}</span></td>
+        <td><span class="badge {{ j.status }}" data-role="status">{{ j.status }}</span></td>
         <td class="mono" style="padding:0.4rem;border:none;background:transparent;max-width:14rem">{{ j.targets_text }}</td>
         <td>{{ j.profile_name }} <span class="muted">{{ j.profile_flags }}</span></td>
         <td>
           {% if j.import_batch_id %}
             <a href="/ui/engagements/{{ engagement.id }}/queue">batch #{{ j.import_batch_id }}</a>
-          {% else %}—{% endif %}
+          {% else %}â€”{% endif %}
         </td>
-        <td class="muted">{{ j.started_at or "—" }}</td>
+        <td class="muted">{{ j.started_at or "â€”" }}</td>
         <td>
           <div class="btn-row">
+            <button type="button" class="secondary ghost scan-log-btn" data-job-id="{{ j.id }}" title="Show terminal log">Log</button>
             {% if j.status == 'draft' or j.status == 'queued' %}
             <form method="post" action="/ui/engagements/{{ engagement.id }}/scans/{{ j.id }}/start" style="display:inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
@@ -141,4 +142,208 @@
   </div>
   {% endif %}
 </div>
+
+<div class="card" id="scan-terminal-card">
+  <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:baseline;justify-content:space-between;margin-bottom:0.65rem">
+    <h2 style="margin:0">Terminal</h2>
+    <p class="muted" id="scan-term-meta" style="margin:0;font-size:0.85rem">Select a job to view stdout/stderr.</p>
+  </div>
+  <div id="scan-term-cmdline-wrap" style="display:none;margin-bottom:0.65rem">
+    <div class="muted" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.25rem">Command</div>
+    <code id="scan-term-cmdline" class="mono" style="display:block;padding:0.55rem 0.7rem;margin:0;color:var(--text);border-color:var(--border)">â€”</code>
+  </div>
+  <div
+    id="scan-term"
+    class="scan-term"
+    role="log"
+    aria-live="polite"
+    aria-relevant="additions"
+    tabindex="0"
+  ><div class="scan-term-empty muted">No log selected. Start a job or click Log on a row.</div></div>
+  <p class="muted" id="scan-term-footer" style="margin:0.55rem 0 0;font-size:0.8rem"></p>
+</div>
+
+<style>
+  .scan-job-row.is-selected td { background: rgba(61, 156, 240, 0.08); }
+  .scan-term {
+    background: #0a0e14;
+    color: #d6e0ef;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 20rem;
+    overflow: auto;
+    padding: 0.75rem 0.9rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 2;
+  }
+  .scan-term:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .scan-term .scan-term-empty { padding: 0.25rem 0; }
+  .scan-term .scan-term-text { margin: 0; }
+</style>
+
+<script type="application/json" id="scan-jobs-boot">[
+  
+  {% for j in jobs %}
+    {"id": {{ j.id }}, "status": {{ j.status|tojson }}, "started_at": {{ (j.started_at.isoformat() if j.started_at else none)|tojson }} }{% if not loop.last %},{% endif %}
+  {% endfor %}
+  ]
+</script>
+<script>
+(function () {
+  const POLL_MS = 1000;
+  const ACTIVE = new Set(["queued", "running"]);
+  const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
+  const bootEl = document.getElementById("scan-jobs-boot");
+  const jobs = bootEl ? JSON.parse(bootEl.textContent || "[]") : [];
+  const term = document.getElementById("scan-term");
+  const meta = document.getElementById("scan-term-meta");
+  const footer = document.getElementById("scan-term-footer");
+  const cmdWrap = document.getElementById("scan-term-cmdline-wrap");
+  const cmdEl = document.getElementById("scan-term-cmdline");
+  if (!term) return;
+
+  let selectedId = null;
+  let offset = 0;
+  let pollTimer = null;
+  let textEl = null;
+  let stickToBottom = true;
+
+  function nearBottom() {
+    return term.scrollHeight - term.scrollTop - term.clientHeight < 48;
+  }
+  term.addEventListener("scroll", function () {
+    stickToBottom = nearBottom();
+  });
+
+  function pickDefaultJob() {
+    if (!jobs.length) return null;
+    const running = jobs.find(function (j) { return j.status === "running"; });
+    if (running) return running.id;
+    const unfinished = jobs.find(function (j) { return ACTIVE.has(j.status); });
+    if (unfinished) return unfinished.id;
+    return jobs[0].id; // newest first in server list
+  }
+
+  function highlightRow(id) {
+    document.querySelectorAll(".scan-job-row").forEach(function (row) {
+      row.classList.toggle("is-selected", String(row.dataset.jobId) === String(id));
+    });
+  }
+
+  function resetTerminal() {
+    offset = 0;
+    stickToBottom = true;
+    term.innerHTML = "";
+    textEl = document.createElement("pre");
+    textEl.className = "scan-term-text";
+    textEl.textContent = "";
+    term.appendChild(textEl);
+  }
+
+  function setChrome(data) {
+    cmdWrap.style.display = "block";
+    cmdEl.textContent = data.command_line || "(command not available yet)";
+    const st = data.status || "?";
+    meta.textContent = "Job #" + data.job_id + " Â· " + st;
+    let foot = data.eof ? "Log complete (eof)." : "Live tailâ€¦";
+    if (data.log_path) foot += " Â· " + data.log_path;
+    footer.textContent = foot;
+    const row = document.querySelector('.scan-job-row[data-job-id="' + data.job_id + '"]');
+    if (row) {
+      const badge = row.querySelector('[data-role="status"]');
+      if (badge && data.status) {
+        badge.textContent = data.status;
+        badge.className = "badge " + data.status;
+      }
+      row.dataset.status = data.status || row.dataset.status;
+    }
+  }
+
+  function stopPoll() {
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function schedulePoll(ms) {
+    stopPoll();
+    pollTimer = setTimeout(function () { fetchLog(false); }, ms);
+  }
+
+  async function fetchLog(reset) {
+    if (!selectedId) return;
+    if (reset) resetTerminal();
+    const url = "/api/scan-jobs/" + selectedId + "/log?offset=" + offset;
+    let data;
+    try {
+      const res = await fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } });
+      if (!res.ok) {
+        footer.textContent = res.status === 404
+          ? "Log API missing (404) — restart the lab server, then hard-refresh this page."
+          : ("Log fetch failed (" + res.status + ").");
+        try { document.getElementById("scan-terminal-card").scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+        var rowFail = document.querySelector('.scan-job-row[data-job-id="' + selectedId + '"]');
+        var stFail = rowFail && rowFail.dataset ? rowFail.dataset.status : "";
+        if (!TERMINAL.has(stFail)) {
+          schedulePoll(POLL_MS * 2);
+        }
+        return;
+      }
+      data = await res.json();
+    } catch (err) {
+      footer.textContent = "Log fetch error â€” retryingâ€¦";
+      schedulePoll(POLL_MS * 2);
+      return;
+    }
+    setChrome(data);
+    if (data.chunk) {
+      textEl.textContent += data.chunk;
+      if (stickToBottom) term.scrollTop = term.scrollHeight;
+    }
+    offset = typeof data.next_offset === "number" ? data.next_offset : offset;
+    if (data.eof || TERMINAL.has(data.status)) {
+      stopPoll();
+      // One more empty poll not needed; eof means done.
+      return;
+    }
+    if (ACTIVE.has(data.status) || data.status === "draft") {
+      // draft: no growth expected until start; still allow manual reselect
+      if (ACTIVE.has(data.status)) schedulePoll(POLL_MS);
+      else stopPoll();
+      return;
+    }
+    // Unknown non-terminal: keep a slow poll
+    schedulePoll(POLL_MS);
+  }
+
+  function selectJob(id) {
+    selectedId = id;
+    highlightRow(id);
+    stopPoll();
+    fetchLog(true);
+  }
+
+  document.querySelectorAll(".scan-log-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      selectJob(Number(btn.dataset.jobId));
+    });
+  });
+  document.querySelectorAll(".scan-job-row").forEach(function (row) {
+    row.addEventListener("dblclick", function () {
+      selectJob(Number(row.dataset.jobId));
+    });
+  });
+
+  const def = pickDefaultJob();
+  if (def != null) selectJob(def);
+})();
+</script>
 {% endblock %}

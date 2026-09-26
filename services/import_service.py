@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import EvidenceFile, ImportBatch, ImportStatus, Observation
 from app.schemas import ImportResult
+from importers.authtwin_findings import looks_like_authtwin, parse_authtwin_findings
 from importers.nessus import parse_nessus
 from importers.nmap_xml import parse_nmap_xml
 from importers.nuclei_jsonl import parse_nuclei_jsonl
@@ -20,7 +21,7 @@ from services.grouping import attach_observation_to_group, build_duplicate_key
 from services.laya_triage import recommend_triage
 
 
-SUPPORTED_TOOLS = {"nmap", "nessus", "nuclei"}
+SUPPORTED_TOOLS = {"nmap", "nessus", "nuclei", "authtwin"}
 
 
 def _sha256_file(path: Path) -> str:
@@ -31,13 +32,29 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def _detect_tool(filename: str, tool_hint: str | None) -> str:
+_CONTENT_TYPES = {
+    "nuclei": "application/x-ndjson",
+    "authtwin": "application/json",
+}
+
+
+def _detect_tool(
+    filename: str, tool_hint: str | None, source_path: Path | None = None
+) -> str:
     if tool_hint:
         t = tool_hint.lower().strip()
         if t in SUPPORTED_TOOLS:
             return t
         raise ValueError(f"Unsupported tool hint: {tool_hint}")
     lower = filename.lower()
+    # AuthTwin exports use generic names (findings.json, report.json,
+    # findings.csv) — detect by content, not filename.
+    if (
+        source_path is not None
+        and (lower.endswith((".json", ".csv")) or "authtwin" in lower)
+        and looks_like_authtwin(source_path)
+    ):
+        return "authtwin"
     if lower.endswith(".nessus") or "nessus" in lower:
         return "nessus"
     if lower.endswith(".jsonl") or "nuclei" in lower:
@@ -45,7 +62,7 @@ def _detect_tool(filename: str, tool_hint: str | None) -> str:
     if lower.endswith(".xml") or "nmap" in lower:
         return "nmap"
     raise ValueError(
-        f"Cannot detect tool from filename '{filename}'. Pass tool=nmap|nessus|nuclei."
+        f"Cannot detect tool from filename '{filename}'. Pass tool=nmap|nessus|nuclei|authtwin."
     )
 
 
@@ -75,7 +92,7 @@ def import_scanner_file(
     is_retest: bool = False,
 ) -> ImportResult:
     original_filename = original_filename or source_path.name
-    detected_tool = _detect_tool(original_filename, tool)
+    detected_tool = _detect_tool(original_filename, tool, source_path)
 
     stored_path, digest, size_bytes = store_evidence(
         source_path, engagement_id, original_filename
@@ -95,9 +112,9 @@ def import_scanner_file(
         import_batch_id=batch.id,
         relative_path=str(stored_path),
         content_type=(
-            "application/x-ndjson"
-            if detected_tool == "nuclei"
-            else "application/xml"
+            "text/csv"
+            if detected_tool == "authtwin" and original_filename.lower().endswith(".csv")
+            else _CONTENT_TYPES.get(detected_tool, "application/xml")
         ),
         sha256=digest,
         size_bytes=size_bytes,
@@ -110,6 +127,8 @@ def import_scanner_file(
             parsed = parse_nmap_xml(stored_path)
         elif detected_tool == "nuclei":
             parsed = parse_nuclei_jsonl(stored_path)
+        elif detected_tool == "authtwin":
+            parsed = parse_authtwin_findings(stored_path)
         else:
             parsed = parse_nessus(stored_path)
 

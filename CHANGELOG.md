@@ -10,6 +10,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Added
 
+- **AuthTwin findings import** (ingest-only): `importers/authtwin_findings.py` accepts `findings.json` / `report.json` / `findings.csv`; `tool=authtwin` on the same import rails as nmap/nessus/nuclei. Deduplex never runs AuthTwin or replays requests. Docs: `docs/AUTHTWIN_IMPORT.md`; sample: `sample_data/sample_authtwin_findings.json`.
+- **Scans live terminal log**: per-job `stdout.log` + `GET /api/scan-jobs/{id}/log`; Scans UI panel; CRLF→LF offset fix for Windows.
 - **Wave 1 ScanJobs**: draft → explicit Start → Nmap `-sT -sV -T4 -oX` (Windows connect default; optional SYN) → auto-import; Nuclei JSONL (Wave 1b); UI **Scans** tab; API `/api/scan-jobs`; binary allowlist + one-at-a-time + timeout/cancel.
 - Open-source readiness docs drafts: CONTRIBUTING, SECURITY, issue/PR templates (packaging for public `deduplex` repo).
 
@@ -29,6 +31,8 @@ Desktop packaging spike for lab machines (Windows).
 
 ### Added
 
+- **AuthTwin findings import** (ingest-only): `importers/authtwin_findings.py` accepts `findings.json` / `report.json` / `findings.csv`; `tool=authtwin` on the same import rails as nmap/nessus/nuclei. Deduplex never runs AuthTwin or replays requests. Docs: `docs/AUTHTWIN_IMPORT.md`; sample: `sample_data/sample_authtwin_findings.json`.
+- **Scans live terminal log**: per-job `stdout.log` + `GET /api/scan-jobs/{id}/log`; Scans UI panel; CRLF→LF offset fix for Windows.
 - **Deduplex** product shell: one-folder PyInstaller build → `Deduplex.exe`.
 - Inno Setup installer → **`Deduplex-Setup.exe`** (`AppVersion` `0.1.0-spike`, publisher **Muhammad Midhlaj**).
 - Localhost-only desktop launcher profile: bind **127.0.0.1**, auth off, Laya off, no `.env` in bundle; writable data under `%LOCALAPPDATA%\Deduplex\`.

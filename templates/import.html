@@ -27,6 +27,7 @@
         <option value="">Auto-detect</option>
         <option value="nmap">nmap</option>
         <option value="nessus">nessus</option>
+        <option value="authtwin">AuthTwin findings (file import only)</option>
       </select>
     </label>
     <label style="display:block;margin-top:0.6rem">Retest import?
@@ -39,7 +40,7 @@
       Check <strong>Yes</strong> when uploading a follow-up scan for retest comparison.
     </p>
     <label style="display:block;margin-top:0.6rem">Scanner file
-      <input type="file" name="file" accept=".xml,.nessus" required />
+      <input type="file" name="file" accept=".xml,.nessus,.json,.csv" required />
     </label>
     <p style="margin-top:0.8rem"><button type="submit">Upload &amp; import</button></p>
   </form>

@@ -26,7 +26,7 @@ def main() -> int:
     parser.add_argument("--engagement-id", type=int, default=None)
     parser.add_argument("--create-engagement", type=str, default=None, help="Create engagement by name")
     parser.add_argument("--client", type=str, default=None)
-    parser.add_argument("--tool", choices=["nmap", "nessus"], default=None)
+    parser.add_argument("--tool", choices=["nmap", "nessus", "nuclei", "authtwin"], default=None)
     parser.add_argument("--retest", action="store_true")
     args = parser.parse_args()
 

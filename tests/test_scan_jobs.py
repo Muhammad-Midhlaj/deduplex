@@ -264,3 +264,280 @@ def test_nmap_xml_all_ports_unknown(tmp_path):
 
 def test_flags_to_connect_strips_syn():
     assert sj._flags_to_connect(["-sS", "-sV", "-T4"]) == ["-sT", "-sV", "-T4"]
+
+
+def test_start_job_sets_stdout_log_path(db_session, engagement, app_data, tmp_path):
+    fake = tmp_path / "nmap"
+    fake.write_text("x")
+    fake.chmod(0o755)
+    with patch("services.scan_jobs.shutil.which", return_value=str(fake)):
+        job = sj.create_draft_job(
+            db_session, engagement_id=engagement.id, tool="nmap", targets_text="127.0.0.1"
+        )
+    started = sj.start_job(db_session, job.id, spawn_worker=False)
+    assert started.log_path
+    assert started.log_path.endswith("stdout.log")
+    assert Path(started.log_path).name == sj.STDOUT_LOG_NAME
+
+
+def test_read_log_chunk_offset_and_legacy_fallback(db_session, engagement, app_data, tmp_path):
+    fake = tmp_path / "nmap"
+    fake.write_text("x")
+    fake.chmod(0o755)
+    with patch("services.scan_jobs.shutil.which", return_value=str(fake)):
+        job = sj.create_draft_job(
+            db_session, engagement_id=engagement.id, tool="nmap", targets_text="127.0.0.1"
+        )
+    job = sj.start_job(db_session, job.id, spawn_worker=False)
+    # No file yet → empty chunk, next_offset 0
+    empty = sj.read_log_chunk(job, offset=0)
+    assert empty["chunk"] == ""
+    assert empty["next_offset"] == 0
+    assert empty["job_id"] == job.id
+    assert empty["eof"] is False  # queued, not terminal
+    assert "nmap" in (empty["command_line"] or "")
+
+    # Write minimal log at stdout.log
+    log = Path(job.log_path)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    payload = "# argv: ['nmap']\nhello world\n"
+    log.write_text(payload, encoding="utf-8")
+
+    full = sj.read_log_chunk(job, offset=0)
+    assert full["chunk"] == payload
+    assert full["next_offset"] == len(payload.encode("utf-8"))
+    assert full["offset"] == 0
+    assert full["log_path"].endswith("stdout.log")
+
+    mid = sj.read_log_chunk(job, offset=full["next_offset"] - 6)
+    assert mid["chunk"].endswith("world\n") or "world" in mid["chunk"]
+
+    # Cap: request tiny max via max_bytes
+    capped = sj.read_log_chunk(job, offset=0, max_bytes=5)
+    assert len(capped["chunk"].encode("utf-8")) <= 5
+    assert capped["next_offset"] == 5
+
+    # Legacy scan.log fallback when stdout missing and log_path points elsewhere
+    job.status = ScanJobStatus.SUCCEEDED
+    db_session.add(job)
+    db_session.commit()
+    log.unlink()
+    legacy = Path(job.job_dir) / sj.LEGACY_LOG_NAME
+    legacy.write_text("legacy line\n", encoding="utf-8")
+    job.log_path = str(Path(job.job_dir) / "missing.log")
+    db_session.add(job)
+    db_session.commit()
+    db_session.refresh(job)
+    legacy_read = sj.read_log_chunk(job, offset=0)
+    assert "legacy" in legacy_read["chunk"]
+    assert legacy_read["eof"] is True
+    assert legacy_read["next_offset"] == len("legacy line\n".encode("utf-8"))
+
+
+def test_format_command_line_quotes_spaces():
+    assert "nmap" in sj.format_command_line(["nmap", "-sV", "host name"])
+    # shlex.join should quote the host with space
+    joined = sj.format_command_line(["nmap", "host name"])
+    assert "host name" in joined or "'host name'" in joined or '"host name"' in joined
+
+
+def test_log_api_offset_via_client(tmp_path, monkeypatch):
+    """HTTP: create draft, plant stdout.log, GET /api/scan-jobs/{id}/log."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy.orm import sessionmaker
+
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+    monkeypatch.setenv("ALLOW_INSECURE_OPEN_MODE", "false")
+    monkeypatch.setenv("SESSION_SECRET", "test-session-secret-not-for-prod-xx")
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'logapi.db'}")
+    monkeypatch.setenv("EVIDENCE_DIR", str(tmp_path / "evidence"))
+    monkeypatch.setenv("VAPT_APP_DATA_DIR", str(tmp_path / "appdata"))
+
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    import app.database as database
+    from app import models  # noqa: F401
+    from app.database import init_db
+    from app.main import create_app
+
+    database.engine = database._make_engine()
+    database.SessionLocal = sessionmaker(
+        bind=database.engine, autoflush=False, autocommit=False, future=True
+    )
+    import app.main as main_mod
+
+    main_mod.SessionLocal = database.SessionLocal
+    init_db()
+
+    fake = tmp_path / "nmap"
+    fake.write_text("x")
+    fake.chmod(0o755)
+
+    app = create_app()
+    with TestClient(app) as client:
+        eng = client.post(
+            "/api/engagements", json={"name": "Log Eng", "client": "Lab"}
+        )
+        assert eng.status_code in (200, 201), eng.text
+        eng_id = eng.json()["id"]
+
+        with patch("services.scan_jobs.shutil.which", return_value=str(fake)):
+            created = client.post(
+                "/api/scan-jobs",
+                json={
+                    "engagement_id": eng_id,
+                    "tool": "nmap",
+                    "targets_text": "127.0.0.1",
+                },
+            )
+        assert created.status_code == 201, created.text
+        job_id = created.json()["id"]
+
+        # No log yet
+        r0 = client.get(f"/api/scan-jobs/{job_id}/log?offset=0")
+        assert r0.status_code == 200
+        body0 = r0.json()
+        assert body0["chunk"] == ""
+        assert body0["next_offset"] == 0
+        assert body0["job_id"] == job_id
+        assert "command_line" in body0
+
+        # Plant log as if start had run
+        db = database.SessionLocal()
+        try:
+            job = db.get(models.ScanJob, job_id)
+            job_dir = sj.jobs_root() / str(job_id)
+            job_dir.mkdir(parents=True, exist_ok=True)
+            log_path = job_dir / sj.STDOUT_LOG_NAME
+            content = "# argv: ['nmap', '127.0.0.1']\nscan output here\n"
+            log_path.write_text(content, encoding="utf-8")
+            job.job_dir = str(job_dir)
+            job.log_path = str(log_path)
+            job.artifact_path = str(job_dir / "scan.xml")
+            job.status = models.ScanJobStatus.RUNNING
+            db.add(job)
+            db.commit()
+        finally:
+            db.close()
+
+        r1 = client.get(f"/api/scan-jobs/{job_id}/log?offset=0")
+        assert r1.status_code == 200
+        body1 = r1.json()
+        assert "scan output here" in body1["chunk"]
+        assert body1["next_offset"] > 0
+        assert body1["eof"] is False
+        assert body1["status"] == "running"
+
+        r2 = client.get(
+            f"/api/scan-jobs/{job_id}/log?offset={body1['next_offset']}"
+        )
+        assert r2.status_code == 200
+        assert r2.json()["chunk"] == ""
+        assert r2.json()["next_offset"] == body1["next_offset"]
+
+        missing = client.get("/api/scan-jobs/999999/log?offset=0")
+        assert missing.status_code == 404
+
+    get_settings.cache_clear()
+
+
+
+
+@pytest.fixture()
+def auth_client(tmp_path, monkeypatch):
+    """Local copy of test_auth.auth_client for ACL checks on scan-job log API."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy.orm import sessionmaker
+
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("BOOTSTRAP_API_KEY", "bootstrap-secret-key-32charsXX")
+    monkeypatch.setenv("SESSION_SECRET", "test-session-secret-not-for-prod-xx")
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'auth-scan.db'}")
+    monkeypatch.setenv("EVIDENCE_DIR", str(tmp_path / "evidence-auth-scan"))
+
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    import app.database as database
+    from app import models  # noqa: F401
+    from app.auth import ensure_bootstrap_principal
+    from app.database import init_db
+
+    database.engine = database._make_engine()
+    database.SessionLocal = sessionmaker(
+        bind=database.engine, autoflush=False, autocommit=False, future=True
+    )
+    # Keep main.lifespan SessionLocal in sync if main was already imported.
+    import app.main as main_mod
+
+    main_mod.SessionLocal = database.SessionLocal
+    init_db()
+    db = database.SessionLocal()
+    try:
+        ensure_bootstrap_principal(db)
+    finally:
+        db.close()
+
+    from app.main import create_app
+
+    app = create_app()
+    with TestClient(app) as client:
+        yield client
+
+    get_settings.cache_clear()
+
+
+def test_log_api_acl_403(auth_client, tmp_path, monkeypatch):
+    """Non-admin without ACL gets 403 on log endpoint (same as other scan-job routes)."""
+    ADMIN_KEY = "bootstrap-secret-key-32charsXX"
+    admin = {"X-API-Key": ADMIN_KEY}
+    bob_key = "bob-log-api-key-16c"
+
+    monkeypatch.setenv("VAPT_APP_DATA_DIR", str(tmp_path / "appdata-acl"))
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    e1 = auth_client.post("/api/engagements", headers=admin, json={"name": "E-Log-1"}).json()["id"]
+    e2 = auth_client.post("/api/engagements", headers=admin, json={"name": "E-Log-2"}).json()["id"]
+
+    create_principal = auth_client.post(
+        "/api/auth/principals",
+        headers=admin,
+        json={"name": "bob-log", "api_key": bob_key, "is_admin": False},
+    )
+    assert create_principal.status_code == 201, create_principal.text
+
+    grant = auth_client.post(
+        "/api/auth/acl",
+        headers=admin,
+        json={"principal_name": "bob-log", "engagement_id": e1},
+    )
+    assert grant.status_code == 201, grant.text
+
+    fake = tmp_path / "nmap"
+    fake.write_text("x")
+    fake.chmod(0o755)
+    with patch("services.scan_jobs.shutil.which", return_value=str(fake)):
+        job_e2 = auth_client.post(
+            "/api/scan-jobs",
+            headers=admin,
+            json={"engagement_id": e2, "tool": "nmap", "targets_text": "127.0.0.1"},
+        )
+    assert job_e2.status_code == 201, job_e2.text
+    job_id = job_e2.json()["id"]
+
+    denied = auth_client.get(
+        f"/api/scan-jobs/{job_id}/log?offset=0",
+        headers={"X-API-Key": bob_key},
+    )
+    assert denied.status_code == 403
+
+    ok = auth_client.get(
+        f"/api/scan-jobs/{job_id}/log?offset=0",
+        headers=admin,
+    )
+    assert ok.status_code == 200

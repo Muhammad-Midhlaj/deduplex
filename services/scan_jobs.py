@@ -8,6 +8,7 @@ never auto-start, no shell=True.
 from __future__ import annotations
 
 import json
+import shlex
 import logging
 import os
 import re
@@ -27,6 +28,14 @@ logger = logging.getLogger("vapt.scan_jobs")
 
 DEFAULT_TIMEOUT_SECONDS = 3600
 ACTIVE_STATUSES = (ScanJobStatus.QUEUED, ScanJobStatus.RUNNING)
+TERMINAL_STATUSES = (
+    ScanJobStatus.SUCCEEDED,
+    ScanJobStatus.FAILED,
+    ScanJobStatus.CANCELLED,
+)
+STDOUT_LOG_NAME = "stdout.log"
+LEGACY_LOG_NAME = "scan.log"
+LOG_CHUNK_MAX_BYTES = 256 * 1024
 
 # Profiles: name → argv flag list (output path flags added by builder).
 # Default is TCP connect (-sT): works without admin on Windows.
@@ -304,7 +313,7 @@ def start_job(db: Session, job_id: int, *, spawn_worker: bool = True) -> ScanJob
         artifact = job_dir / "scan.xml"
     else:
         artifact = job_dir / "scan.jsonl"
-    log_path = job_dir / "scan.log"
+    log_path = job_dir / STDOUT_LOG_NAME
 
     job.binary_path = binary
     job.job_dir = str(job_dir)
@@ -449,7 +458,7 @@ def _run_job_worker(job_id: int) -> None:
         db.commit()
 
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        with log_path.open("w", encoding="utf-8") as logf:
+        with log_path.open("w", encoding="utf-8", buffering=1) as logf:
             logf.write(f"# argv: {argv!r}\n")
             logf.flush()
             proc = subprocess.Popen(
@@ -524,7 +533,7 @@ def _run_job_worker(job_id: int) -> None:
             argv2 = build_nmap_argv(
                 binary, targets, xml_path=fallback_xml, profile_flags=connect_flags
             )
-            with log_path.open("a", encoding="utf-8") as logf:
+            with log_path.open("a", encoding="utf-8", buffering=1) as logf:
                 logf.write(
                     "\n# auto-fallback: SYN/unknown ports → retry with -sT\n"
                     f"# argv: {argv2!r}\n"
@@ -617,6 +626,130 @@ def _run_job_worker(job_id: int) -> None:
             _active_procs.pop(job_id, None)
             _cancel_requested.pop(job_id, None)
         db.close()
+
+
+
+def format_command_line(argv: list[str]) -> str:
+    """Shell-join argv for display only — never re-execute the result."""
+    try:
+        return shlex.join(argv)
+    except Exception:  # noqa: BLE001
+        return " ".join(str(a) for a in argv)
+
+
+def command_line_for_job(job: ScanJob) -> str:
+    """Human-readable command line reconstructed from job fields (display only)."""
+    binary = (job.binary_path or "").strip()
+    if not binary:
+        return ""
+    targets = (job.targets_text or "").split()
+    flags = (job.profile_flags or "").split()
+    try:
+        if job.tool == "nmap":
+            artifact = Path(job.artifact_path) if job.artifact_path else Path("scan.xml")
+            argv = build_nmap_argv(
+                binary, targets or ["…"], xml_path=artifact, profile_flags=flags
+            )
+        elif job.tool == "nuclei":
+            artifact = Path(job.artifact_path) if job.artifact_path else Path("scan.jsonl")
+            argv = build_nuclei_argv(
+                binary, targets or ["…"], jsonl_path=artifact, profile_flags=flags
+            )
+        else:
+            argv = [binary, *flags, *targets]
+        return format_command_line(argv)
+    except Exception:  # noqa: BLE001
+        return format_command_line([binary, *flags, *targets])
+
+
+def resolve_existing_log_path(job: ScanJob) -> Path | None:
+    """Prefer job.log_path, then stdout.log, then legacy scan.log under job_dir."""
+    candidates: list[Path] = []
+    if job.log_path:
+        candidates.append(Path(job.log_path))
+    if job.job_dir:
+        d = Path(job.job_dir)
+        candidates.append(d / STDOUT_LOG_NAME)
+        candidates.append(d / LEGACY_LOG_NAME)
+    seen: set[str] = set()
+    for p in candidates:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            if p.is_file():
+                return p
+        except OSError:
+            continue
+    return None
+
+
+def read_log_chunk(
+    job: ScanJob,
+    *,
+    offset: int = 0,
+    max_bytes: int = LOG_CHUNK_MAX_BYTES,
+) -> dict:
+    """Read a UTF-8 log slice from byte offset for live tail / scrollback.
+
+    Returns keys: job_id, status, command_line, offset, next_offset, chunk, eof, log_path.
+    Undecodable bytes are replaced. Cap max_bytes (default 256KiB).
+    """
+    status_val = job.status.value if hasattr(job.status, "value") else str(job.status)
+    cmd = command_line_for_job(job)
+    terminal = job.status in TERMINAL_STATUSES
+    try:
+        off = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        off = 0
+    try:
+        cap = max(1, min(int(max_bytes or LOG_CHUNK_MAX_BYTES), LOG_CHUNK_MAX_BYTES))
+    except (TypeError, ValueError):
+        cap = LOG_CHUNK_MAX_BYTES
+
+    path = resolve_existing_log_path(job)
+    if path is None:
+        return {
+            "job_id": job.id,
+            "status": status_val,
+            "command_line": cmd,
+            "offset": off,
+            "next_offset": 0,
+            "chunk": "",
+            "eof": terminal,
+            "log_path": job.log_path,
+        }
+
+    try:
+        # Treat offsets as bytes in the LF-normalized stream so CRLF files
+        # behave exactly like LF files on every platform.
+        normalized = (
+            path.read_bytes()
+            .replace(b"\r\n", b"\n")
+            .replace(b"\r", b"\n")
+        )
+    except OSError:
+        normalized = b""
+
+    size = len(normalized)
+    if off > size:
+        off = size
+
+    raw = normalized[off : off + cap]
+    chunk = raw.decode("utf-8", errors="replace")
+    next_off = off + len(raw)
+    eof = terminal and next_off >= size
+    return {
+        "job_id": job.id,
+        "status": status_val,
+        "command_line": cmd,
+        "offset": off,
+        "next_offset": next_off,
+        "chunk": chunk,
+        "eof": eof,
+        "log_path": str(path),
+    }
 
 
 def list_jobs_for_engagement(db: Session, engagement_id: int) -> list[ScanJob]:

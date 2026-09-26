@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "stats": {
+    "findings": 3,
+    "noise_dropped": 1,
+    "control_failures": 0,
+    "severity_high": 1,
+    "severity_medium": 1,
+    "severity_low": 1,
+    "confirmed": 2
+  },
+  "findings": [
+    {
+      "finding_id": "a1b2c3d4e5f6",
+      "title": "bob can modify order 1001 owned by alice",
+      "severity": "high",
+      "classification": "confirmed-anomaly",
+      "res_type": "order",
+      "object_id": "1001",
+      "owner_identity": "alice",
+      "actor_identity": "bob",
+      "access_types": ["mutate"],
+      "evidence": [
+        {
+          "scenario_id": "sc-0007",
+          "method": "PATCH",
+          "url": "https://shop.lab.local/api/orders/1001?token=REDACTED",
+          "path_template": "/api/orders/{order_id}",
+          "actor_identity": "bob",
+          "owner_identity": "alice",
+          "access_type": "mutate",
+          "mutation": "order_id:7777->1001",
+          "observed_status": 200,
+          "baseline_status": 200,
+          "structure_score": 0.97,
+          "text_score": 0.91,
+          "confidence": "high"
+        }
+      ],
+      "attack_path": [
+        {"stage": "acquisition", "description": "bob observes own order id 7777", "seq_refs": [12], "template_label": "GET /api/orders/{order_id}", "http_status": 200},
+        {"stage": "execution", "description": "bob PATCHes order 1001 (alice)", "seq_refs": [18], "template_label": "PATCH /api/orders/{order_id}", "http_status": 200}
+      ],
+      "repro_chain": [
+        {"seq": 18, "identity": "bob", "method": "PATCH", "host": "shop.lab.local", "path": "/api/orders/1001", "query": [], "mutating": true, "body_sha256": null, "scheme": "https", "port": null}
+      ],
+      "wsg_labels": ["checkout"],
+      "lineage_summary": ["order_id sourced from GET /api/orders"],
+      "rationale": "Mutation accepted with owner-equivalent response structure."
+    },
+    {
+      "finding_id": "0f9e8d7c6b5a",
+      "title": "bob can read order 1002 owned by carol",
+      "severity": "medium",
+      "classification": "confirmed-anomaly",
+      "res_type": "order",
+      "object_id": "1002",
+      "owner_identity": "carol",
+      "actor_identity": "bob",
+      "access_types": ["read"],
+      "evidence": [
+        {
+          "scenario_id": "sc-0003",
+          "method": "GET",
+          "url": "https://shop.lab.local/api/orders/1002",
+          "path_template": "/api/orders/{order_id}",
+          "actor_identity": "bob",
+          "owner_identity": "carol",
+          "access_type": "read",
+          "mutation": "order_id:7777->1002",
+          "observed_status": 200,
+          "baseline_status": 200,
+          "structure_score": 0.95,
+          "text_score": 0.88,
+          "confidence": "high"
+        }
+      ],
+      "attack_path": [],
+      "repro_chain": [],
+      "wsg_labels": [],
+      "lineage_summary": [],
+      "rationale": ""
+    },
+    {
+      "finding_id": "112233445566",
+      "title": "bob may read invoice INV-9 owned by alice",
+      "severity": "low",
+      "classification": "suspected-anomaly",
+      "res_type": "invoice",
+      "object_id": "INV-9",
+      "owner_identity": "alice",
+      "actor_identity": "bob",
+      "access_types": ["read"],
+      "evidence": [],
+      "attack_path": [],
+      "repro_chain": [],
+      "wsg_labels": [],
+      "lineage_summary": [],
+      "rationale": "Structure match without baseline corroboration."
+    }
+  ],
+  "control_failures": [],
+  "warnings": []
+}
