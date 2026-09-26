@@ -1,4 +1,4 @@
-﻿# Deduplex / VAPT Effort Reduction (MVP)
+# Deduplex / VAPT Effort Reduction (MVP)
 
 Personal open-source VAPT effort-reduction assistant: consolidate Nmap/Nessus/Nuclei (and AuthTwin authorization findings), exact duplicate grouping, evidence retention, analyst queue & decisions, template exports, retest compare, and localhost Wave 1 scan jobs with a live terminal log.
 
@@ -316,3 +316,54 @@ finetune/      Bounded Laya fine-tune pipeline (export/preprocess/train/eval)
 - Imported scanner content is treated as **data only**. The app does not execute scanner tools or act on triage predictions.
 - Exports include **confirmed** findings only (after analyst decision).
 
+## Open-source projects
+
+Deduplex stands on these open-source projects. Thank you to their maintainers and communities.
+
+### Runtime (Python)
+
+| Project | Role in Deduplex |
+| --- | --- |
+| [FastAPI](https://github.com/fastapi/fastapi) | HTTP API and app framework |
+| [Uvicorn](https://github.com/encode/uvicorn) | ASGI server |
+| [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy) | ORM / database layer (SQLite by default) |
+| [Pydantic](https://github.com/pydantic/pydantic) / [pydantic-settings](https://github.com/pydantic/pydantic-settings) | Request/settings models |
+| [python-multipart](https://github.com/Kludex/python-multipart) | Multipart upload parsing |
+| [Jinja](https://github.com/pallets/jinja) | Analyst HTML templates |
+| [httpx](https://github.com/encode/httpx) | HTTP client |
+| [lxml](https://github.com/lxml/lxml) | XML parsing for scanner imports |
+| [defusedxml](https://github.com/tiran/defusedxml) | Safer XML handling (XXE hardening) |
+| [openpyxl](https://foss.heptapod.net/openpyxl/openpyxl) | Excel (XLSX) exports |
+| [python-docx](https://github.com/python-openxml/python-docx) | Word (DOCX) exports |
+| [pytest](https://github.com/pytest-dev/pytest) / [pytest-asyncio](https://github.com/pytest-dev/pytest-asyncio) | Test suite |
+| [Laya](https://pypi.org/project/laya/) | Optional typed-decisions triage SDK (feature-flagged; pulls ML stack when enabled) |
+
+When `LAYA_ENABLED=true`, Laya may pull additional OSS such as [PyTorch](https://github.com/pytorch/pytorch), [🤗 Transformers](https://github.com/huggingface/transformers), and [huggingface_hub](https://github.com/huggingface/huggingface_hub).
+
+### Desktop packaging (Windows)
+
+| Project | Role in Deduplex |
+| --- | --- |
+| [PyInstaller](https://github.com/pyinstaller/pyinstaller) | One-folder `Deduplex.exe` builds |
+| [pywebview](https://github.com/r0x0r/pywebview) | Native desktop window (WebView2) |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | `Deduplex-Setup.exe` installer |
+
+### Scanner formats and external tools
+
+Deduplex **imports** results from these ecosystems (and can launch allowlisted CLIs for Wave 1 jobs). They are not bundled inside the app:
+
+| Project | Role |
+| --- | --- |
+| [Nmap](https://nmap.org/) ([source](https://github.com/nmap/nmap)) | XML import + Wave 1 scan jobs |
+| [Nuclei](https://github.com/projectdiscovery/nuclei) | JSONL import + Wave 1b jobs |
+| [SQLite](https://www.sqlite.org/) | Default embedded database |
+
+Nessus `.nessus` files are supported as an **import format** only; Nessus itself is a commercial Tenable product, not open source.
+
+AuthTwin findings import is ingest-only (`tool=authtwin`); AuthTwin remains a separate tool and is not shipped in this repository.
+
+Exact versions live in [`requirements.txt`](requirements.txt), [`requirements-desktop.txt`](requirements-desktop.txt), and [`requirements-desktop-build.txt`](requirements-desktop-build.txt).
+
+## License
+
+Copyright 2026 Muhammad Midhlaj. Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
