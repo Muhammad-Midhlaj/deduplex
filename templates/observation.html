@@ -53,20 +53,27 @@
       <label style="margin-top:0.6rem;display:block">Analyst
         <input name="analyst" value="analyst" />
       </label>
-      <p class="muted" style="margin:0.75rem 0 0.35rem;font-size:0.85rem">Quick actions ({{ decisions_enum|join(', ') }})</p>
-      <div class="quick-actions">
+      <fieldset class="quick-actions-fieldset">
+        <legend class="quick-actions-legend">Quick actions ({{ decisions_enum|join(', ') }})</legend>
+        <div class="quick-actions">
         <button type="submit" name="decision" value="confirmed" class="ok">confirmed</button>
         <button type="submit" name="decision" value="false_positive" class="danger">false_positive</button>
         <button type="submit" name="decision" value="accepted_risk" class="warn">accepted_risk</button>
         <button type="submit" name="decision" value="defer" class="ghost">defer</button>
         <button type="submit" name="decision" value="informational" class="secondary">informational</button>
-      </div>
+        </div>
+      </fieldset>
     </form>
   </div>
 </div>
 
 <div class="card">
   <h2>Observations &amp; evidence ({{ group.observations|length }})</h2>
+  {% if group.observations|length == 0 %}
+  <div class="empty-state">
+    <p>No observations recorded for this finding group yet.</p>
+  </div>
+  {% endif %}
   {% for o in group.observations %}
   <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
     <p><strong>#{{ o.id }}</strong> · triage {{ o.triage_source or '—' }}
