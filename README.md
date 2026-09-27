@@ -6,7 +6,7 @@ Related: [AuthTwin](https://github.com/Muhammad-Midhlaj/authtwin) (separate BAC/
 
 Laya triage is **feature-flagged** and defaults **off**. When enabled it uses the real `laya` SDK (`typed-decisions`) or an optional remote URL, with rules fallback. Analysts retain validation - nothing is auto-confirmed or auto-suppressed.
 
-See `docs/SCANNER_EXECUTION.md` and `docs/AUTHTWIN_IMPORT.md`. AuthTwin engine: https://github.com/Muhammad-Midhlaj/authtwin.
+See `docs/SCANNER_EXECUTION.md`, `docs/AUTHTWIN_IMPORT.md`, and `docs/EXPORTS.md` (CSV/XLSX/DOCX export columns). AuthTwin engine: https://github.com/Muhammad-Midhlaj/authtwin.
 
 ## Requirements
 
@@ -126,7 +126,7 @@ curl -s -X POST http://127.0.0.1:8000/api/finding-groups/1/decisions \
   -H 'Content-Type: application/json' \
   -d '{"decision":"confirmed","reason":"Validated on host","analyst":"alice"}'
 
-# Exports (confirmed only)
+# Exports (confirmed only - see docs/EXPORTS.md for the real columns)
 curl -OJ http://127.0.0.1:8000/api/exports/1/tracker.csv
 curl -OJ http://127.0.0.1:8000/api/exports/1/tracker.xlsx
 curl -OJ http://127.0.0.1:8000/api/exports/1/report.docx
