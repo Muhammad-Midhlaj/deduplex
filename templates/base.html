@@ -83,6 +83,8 @@
     button.ghost, .btn.ghost { background: #2a384c; color: var(--text); }
     .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
     .quick-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.75rem; }
+    .quick-actions-fieldset { border: none; margin: 0.75rem 0 0; padding: 0; }
+    .quick-actions-legend { font-size: 0.85rem; color: var(--muted); padding: 0; margin-bottom: 0.35rem; }
     pre, .mono {
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.82rem; white-space: pre-wrap; word-break: break-word;
@@ -245,8 +247,9 @@
     <span class="spacer"></span>
     <span class="localhost-note" title="Lab build binds 127.0.0.1 only">localhost</span>
     <div class="menu" id="help-menu">
-      <button type="button" aria-haspopup="true" aria-expanded="false" onclick="this.parentElement.classList.toggle('open')">File / Help ▾</button>
-      <div class="menu-panel" role="menu">
+      <button type="button" aria-haspopup="true" aria-expanded="false" aria-controls="help-menu-panel"
+              onclick="this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded',this.parentElement.classList.contains('open'))">File / Help ▾</button>
+      <div class="menu-panel" id="help-menu-panel" role="menu" aria-label="File / Help">
         <a href="/" role="menuitem">Home — engagements</a>
         {% if engagement %}
         <a href="/ui/engagements/{{ engagement.id }}" role="menuitem">Engagement hub</a>
@@ -284,7 +287,11 @@
   <script>
     document.addEventListener('click', function (e) {
       var m = document.getElementById('help-menu');
-      if (m && !m.contains(e.target)) m.classList.remove('open');
+      if (m && !m.contains(e.target)) {
+        m.classList.remove('open');
+        var t = m.querySelector('[aria-controls]');
+        if (t) t.setAttribute('aria-expanded', 'false');
+      }
     });
   </script>
 
